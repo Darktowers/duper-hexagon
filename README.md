@@ -1,6 +1,6 @@
 # Duper Hexagon
 
-A minimalistic twitch game and a ~~shameless ripoff~~ homage to [Super Hexagon](http://superhexagon.com/), the
+A minimalistic twitch game and a ~~shameless ripoff~~ tribute to [Super Hexagon](http://superhexagon.com/), the
 blockbuster game by [Terry Cavanagh](http://distractionware.com/blog/about-me/).
 
 Written in JavaScript using [Phaser](http://phaser.io/), the game code is licensed under
