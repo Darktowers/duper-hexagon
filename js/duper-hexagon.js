@@ -346,7 +346,7 @@
 		{
 			if (crashed === false)
 			{
-				//game.world.rotation += ROTATION_SPEED;
+				game.world.rotation += ROTATION_SPEED;
 				if (cursors.left.isDown)
 				{
 					increasePlayerPos(-PLAYER_SPEED);
