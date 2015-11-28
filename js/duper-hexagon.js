@@ -19,11 +19,14 @@
 	var OBSTACLE_SPEED = 4;
 
 	var sqrt3 = Math.sqrt(3);
-	var player_position = 3 * Math.PI / 2;
+	var player_interval;
+	var player_position = 5 * Math.PI / 6;
 
 	var intervals;
+	var blocked_intervals = [false, false, false, false, false, false];
+	var crashed = false;
 
-	var setUpPlayerRail = function ()
+	var setUpIntervals = function ()
 	{
 		intervals = [0];
 		var interval = 2 * Math.PI / PLAYER_RAIL_SIDES;
@@ -44,17 +47,17 @@
 	var backgroundTriangles = function ()
 	{
 		// A background triangle's height, must be enough to reach from the center to any of the four corners
-		var h = Math.sqrt(SIZE_X * SIZE_X + SIZE_Y * SIZE_Y);
+		var h = Math.sqrt(SIZE_X * SIZE_X + SIZE_Y * SIZE_Y) / 2;
 		var l = h * 2 / sqrt3; // Side of an equilateral triangle with height h
 		var zero = new Phaser.Point(0, 0);
 		if (interval_points.length === 0)
 		{
-			interval_points.push(new Phaser.Point(l, 0));
-			interval_points.push(new Phaser.Point(l / 2, h));
-			interval_points.push(new Phaser.Point(-l / 2, h));
-			interval_points.push(new Phaser.Point(-l, 0));
-			interval_points.push(new Phaser.Point(-l / 2, -h));
-			interval_points.push(new Phaser.Point(l / 2, -h));
+			interval_points.push(new Phaser.Point(0, l));
+			interval_points.push(new Phaser.Point(-h, l / 2));
+			interval_points.push(new Phaser.Point(-h, -l / 2));
+			interval_points.push(new Phaser.Point(0, -l));
+			interval_points.push(new Phaser.Point(h, -l / 2));
+			interval_points.push(new Phaser.Point(h, l / 2));
 			interval_points.push(interval_points[0]);
 		}
 
@@ -72,14 +75,25 @@
 	var proportion_y = [];
 	// List of obstacles
 	var obstacles = [];
+	// x coordinates for each straight when we know that an obstacle is close enough to the player to actually touch
+	// him/her
+	var danger_zone = [];
+	var leave_danger_zone = [];
 
 	var drawObstacle = function (interval)
 	{
 		var calc_interval = function (interval)
 		{
-			var m = Math.abs(interval_points[interval].y / interval_points[interval].x); // as in y = mx
-			proportion_x[interval] = 1 / Math.sqrt(1 + m * m);
-			proportion_y[interval] = m * proportion_x[interval];
+			if (interval_points[interval].x !== 0)
+			{
+				var m = Math.abs(interval_points[interval].y / interval_points[interval].x); // as in y = mx
+				proportion_x[interval] = 1 / Math.sqrt(1 + m * m);
+				proportion_y[interval] = m * proportion_x[interval];
+			} else
+			{
+				proportion_x[interval] = 0;
+				proportion_y[interval] = 1;
+			}
 			// TODO: surely there's a nicer way to do this
 			if (interval_points[interval].x < 0)
 			{
@@ -89,6 +103,14 @@
 			{
 				proportion_y[interval] *= -1;
 			}
+			var danger = (CENTER_RADIUS + CENTER_BORDER + PLAYER_RADIUS);
+			var leave_danger = (CENTER_RADIUS + CENTER_BORDER - PLAYER_RADIUS);
+			danger_zone[interval] = {
+				x: danger * proportion_x[interval],
+				y: danger * proportion_y[interval]};
+			leave_danger_zone[interval] =  {
+				x: leave_danger * proportion_x[interval],
+				y: leave_danger * proportion_y[interval]};
 		};
 
 		var p1 = interval_points[interval].clone();
@@ -112,7 +134,8 @@
 		graphics.beginFill(OBSTACLE_COLOR);
 		graphics.drawPolygon(shape);
 		graphics.endFill();
-		obstacles.push({shape: shape, graphics: graphics, interval: interval, speed: OBSTACLE_SPEED, points: points});
+		obstacles.push({shape: shape, graphics: graphics, interval: interval, speed: OBSTACLE_SPEED, points: points,
+			entered_danger: false, left_danger: false});
 	};
 
 	var updateObstacles = function ()
@@ -124,7 +147,9 @@
 			var interval = obstacle.interval;
 			var graphics = obstacle.graphics;
 			var old_x_0 = points[0].x;
+			var old_y_0 = points[0].y;
 			var old_x_2 = points[2].x;
+			var old_y_2 = points[2].y;
 			points[0].x -= OBSTACLE_SPEED * proportion_x[interval];
 			points[0].y -= OBSTACLE_SPEED * proportion_y[interval];
 			points[1].x -= OBSTACLE_SPEED * proportion_x[interval + 1];
@@ -133,16 +158,34 @@
 			points[2].y -= OBSTACLE_SPEED * proportion_y[interval + 1];
 			points[3].x -= OBSTACLE_SPEED * proportion_x[interval];
 			points[3].y -= OBSTACLE_SPEED * proportion_y[interval];
-			if (old_x_0 * points[0].x < 0) // turned from positive to negative or vice versa
+
+			// turned from positive to negative or vice versa
+			if (old_x_0 * points[0].x <= 0 && old_y_0 * points[0].y <= 0)
 			{
 				points[0].x = points[0].y = points[1].x = points[1].y = 0;
 			}
-			if (old_x_2 * points[2].x < 0) // turned from positive to negative or vice versa
+			// turned from positive to negative or vice versa
+			if (old_x_2 * points[2].x <= 0 && old_y_2 * points[2].y <= 0)
 			{
 				to_remove.push(index);
 				graphics.kill();
 			} else
 			{
+				if (obstacle.entered_danger === false &&
+						(points[0].x / danger_zone[interval].x < 1 || points[0].y / danger_zone[interval].y < 1))
+				{
+					obstacle.entered_danger = true;
+					blocked_intervals[interval] = true;
+					if (player_interval === interval)
+					{
+						onCrash();
+					}
+				} if (obstacle.left_danger === false &&
+						(points[3].x / leave_danger_zone[interval].x < 1 || points[3].y / leave_danger_zone[interval].y < 1))
+				{
+					obstacle.left_danger = true;
+					blocked_intervals[interval] = false;
+				}
 				obstacle.shape.setTo(points);
 				graphics.clear();
 				graphics.beginFill(OBSTACLE_COLOR);
@@ -157,16 +200,8 @@
 		}
 	};
 
-	var redrawPlayerPos = function ()
+	var updatePlayerPos = function ()
 	{
-		var index = null;
-		for (var i = 0; i < intervals.length - 1 && index === null; i++)
-		{
-			if (player_position < intervals[i + 1])
-			{
-				index = i;
-			}
-		}
 		player_graphics.rotation = player_position;
 	};
 
@@ -179,8 +214,8 @@
 		// Avoid expensive sine and cosine calculations for the center hexagon
 		if (sides === 6 && angle === 0)
 		{
-			x_points = [x + radius, x + radius / 2, x - radius / 2, x - radius, x - radius / 2, x + radius / 2];
-			y_points = [y, y + height, y + height, y, y - height, y - height];
+			x_points = [x, x + height, x + height, x, x - height, x - height];
+			y_points = [y + radius, y + radius / 2, y - radius / 2, y - radius, y - radius / 2, y + radius / 2];
 		} else
 		{
 			var increment = 2 * Math.PI / sides;
@@ -208,8 +243,26 @@
 		return new Phaser.Polygon(points);
 	};
 
+	var updatePlayerInterval = function()
+	{
+		var found = false;
+		for (var i = 1; i < intervals.length && !found; i++)
+		{
+			if (player_position < intervals[i])
+			{
+				player_interval = i - 1;
+				found = true;
+			}
+		}
+		if (!found)
+		{
+			player_interval = intervals.length - 1;
+		}
+	};
+
 	var increasePlayerPos = function (offset)
 	{
+		var old_pos = player_position;
 		player_position += offset;
 		if (player_position < 0)
 		{
@@ -217,6 +270,12 @@
 		} else if (player_position > 2 * Math.PI)
 		{
 			player_position -= 2 * Math.PI;
+		}
+		updatePlayerInterval();
+		if (blocked_intervals[player_interval])
+		{
+			player_position = old_pos;
+			updatePlayerInterval();
 		}
 	};
 
@@ -236,6 +295,12 @@
 		center_hexagon_graphics.beginFill(CENTER_COLOR);
 		center_hexagon_graphics.drawPolygon(center_hexagon_poly);
 		center_hexagon_graphics.endFill();
+	};
+
+	var onCrash = function()
+	{
+		crashed = true;
+		song.fadeOut(200);
 	};
 
 	var DuperHexagon = {
@@ -271,26 +336,30 @@
 			redrawCenterHexagon();
 
 			player_graphics = game.add.graphics(0, 0);
-			setUpPlayerRail();
-			redrawPlayerPos();
+			setUpIntervals();
+			updatePlayerInterval();
+			updatePlayerPos();
 
 			cursors = game.input.keyboard.createCursorKeys();
 		},
 		update: function ()
 		{
-			game.world.rotation += ROTATION_SPEED;
-			if (cursors.left.isDown)
+			if (crashed === false)
 			{
-				increasePlayerPos(-PLAYER_SPEED);
-				redrawPlayerPos();
+				//game.world.rotation += ROTATION_SPEED;
+				if (cursors.left.isDown)
+				{
+					increasePlayerPos(-PLAYER_SPEED);
+					updatePlayerPos();
+				}
+				else if (cursors.right.isDown)
+				{
+					increasePlayerPos(PLAYER_SPEED);
+					updatePlayerPos();
+				}
+				updateObstacles();
+				redrawCenterHexagon();
 			}
-			else if (cursors.right.isDown)
-			{
-				increasePlayerPos(PLAYER_SPEED);
-				redrawPlayerPos();
-			}
-			updateObstacles();
-			redrawCenterHexagon();
 		}
 	};
 
