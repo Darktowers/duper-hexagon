@@ -35,7 +35,7 @@
 			intervals.push(i * interval);
 		}
 
-		player_poly = buildRegularPolygon(0, CENTER_RADIUS + CENTER_BORDER, 3, PLAYER_RADIUS, Math.PI / 2);
+		var player_poly = buildRegularPolygon(0, CENTER_RADIUS + CENTER_BORDER, 3, PLAYER_RADIUS, Math.PI / 2);
 		player_graphics.beginFill(PLAYER_COLOR);
 		player_graphics.drawPolygon(player_poly);
 		player_graphics.endFill();
@@ -130,10 +130,11 @@
 			interval_points[interval].y + OBSTACLE_WIDTH * proportion_y[interval]);
 		var points = [p1, p2, p3, p4];
 		var shape = new Phaser.Polygon(points);
-		var graphics = game.add.graphics(0, 0);
+		var graphics = new Phaser.Graphics(game, 0, 0);
 		graphics.beginFill(OBSTACLE_COLOR);
 		graphics.drawPolygon(shape);
 		graphics.endFill();
+		obstacles_group.add(graphics);
 		obstacles.push({shape: shape, graphics: graphics, interval: interval, speed: OBSTACLE_SPEED, points: points,
 			entered_danger: false, left_danger: false});
 	};
@@ -279,23 +280,13 @@
 		}
 	};
 
-	var background_graphics_odd;
-	var background_graphics_even;
-	var center_hexagon_graphics;
-	var center_hexagon_poly;
+	var obstacles_group;
+	var center_group;
+	var background_group;
+	var player_group;
 	var player_graphics;
-	var player_poly;
 	var cursors;
 	var song;
-
-
-	var redrawCenterHexagon = function()
-	{
-		center_hexagon_graphics.clear();
-		center_hexagon_graphics.beginFill(CENTER_COLOR);
-		center_hexagon_graphics.drawPolygon(center_hexagon_poly);
-		center_hexagon_graphics.endFill();
-	};
 
 	var onCrash = function()
 	{
@@ -318,9 +309,15 @@
 			game.stage.disableVisibilityChange = true;
 			game.world.setBounds(-SIZE_X / 2, -SIZE_Y / 2, SIZE_X / 2, SIZE_Y / 2);
 
+			// The last to be declared is always painted on top
+			background_group = game.add.group();
+			obstacles_group  = game.add.group();
+			center_group     = game.add.group();
+			player_group     = game.add.group();
+
 			var bg_polygons = backgroundTriangles();
-			background_graphics_odd = game.add.graphics(0, 0);
-			background_graphics_even = game.add.graphics(0, 0);
+			var background_graphics_odd = new Phaser.Graphics(game, 0, 0);
+			var background_graphics_even = new Phaser.Graphics(game, 0, 0);
 			background_graphics_odd.beginFill(BGCOLOR1);
 			background_graphics_even.beginFill(BGCOLOR2);
 			for (var i = 0; i < bg_polygons.length; i++)
@@ -330,10 +327,16 @@
 			}
 			background_graphics_odd.endFill();
 			background_graphics_even.endFill();
+			background_group.add(background_graphics_even);
+			background_group.add(background_graphics_odd);
 
-			center_hexagon_graphics = game.add.graphics(0, 0);
-			center_hexagon_poly = buildRegularPolygon(0, 0, PLAYER_RAIL_SIDES, CENTER_RADIUS);
-			redrawCenterHexagon();
+			var center_hexagon_graphics = new Phaser.Graphics(game, 0, 0);
+			var center_hexagon_poly = buildRegularPolygon(0, 0, PLAYER_RAIL_SIDES, CENTER_RADIUS);
+			center_hexagon_graphics.clear();
+			center_hexagon_graphics.beginFill(CENTER_COLOR);
+			center_hexagon_graphics.drawPolygon(center_hexagon_poly);
+			center_hexagon_graphics.endFill();
+			center_group.add(center_hexagon_graphics);
 
 			player_graphics = game.add.graphics(0, 0);
 			setUpIntervals();
@@ -358,7 +361,6 @@
 					updatePlayerPos();
 				}
 				updateObstacles();
-				redrawCenterHexagon();
 			}
 		}
 	};
