@@ -285,7 +285,7 @@
 	var background_group;
 	var player_group;
 	var player_graphics;
-	var cursors;
+	var keys;
 	var song;
 
 	var onCrash = function()
@@ -386,23 +386,27 @@
 			center_group     = game.add.group();
 			player_group     = game.add.group();
 
-			cursors = game.input.keyboard.createCursorKeys();
+			keys       = game.input.keyboard.createCursorKeys();
+			keys.A     = game.input.keyboard.addKey(Phaser.Keyboard.A);
+			keys.D     = game.input.keyboard.addKey(Phaser.Keyboard.D);
+			keys.enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
+			keys.enter.onDown.add(tryRestart);
 
 			restart();
-			var enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
-			enter.onDown.add(tryRestart);
 		},
 		update: function ()
 		{
 			if (crashed === false)
 			{
+				var left  = keys.left.isDown  || keys.A.isDown;
+				var right = keys.right.isDown || keys.D.isDown;
 				game.world.rotation += ROTATION_SPEED;
-				if (cursors.left.isDown)
+				if (left)
 				{
 					increasePlayerPos(-PLAYER_SPEED);
 					updatePlayerPos();
 				}
-				else if (cursors.right.isDown)
+				else if (right)
 				{
 					increasePlayerPos(PLAYER_SPEED);
 					updatePlayerPos();
