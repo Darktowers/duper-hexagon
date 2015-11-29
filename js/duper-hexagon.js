@@ -294,6 +294,78 @@
 		song.fadeOut(200);
 	};
 
+	var restart = function()
+	{
+		crashed = false;
+
+		// Clean up a previous run
+		if (player_graphics)
+		{
+			player_graphics.clear();
+			obstacles.map(function(obstacle)
+			{
+				obstacle.graphics.clear();
+			});
+			obstacles = [];
+			blocked_intervals = [false, false, false, false, false, false];
+		}
+
+		// If the user restarts again before the song started fading out, we for the song to finish fading out before
+		// playing it again
+		var playSong = function()
+		{
+			song.volume = 1;
+			song.play();
+		};
+		if (song.isPlaying)
+		{
+			song.onFadeComplete.add(function()
+			{
+				playSong();
+				song.onFadeComplete.removeAll();
+			});
+		} else
+		{
+			playSong();
+		}
+
+		var bg_polygons = backgroundTriangles();
+		var background_graphics_odd = new Phaser.Graphics(game, 0, 0);
+		var background_graphics_even = new Phaser.Graphics(game, 0, 0);
+		background_graphics_odd.beginFill(BGCOLOR1);
+		background_graphics_even.beginFill(BGCOLOR2);
+		for (var i = 0; i < bg_polygons.length; i++)
+		{
+			var graphics = i % 2 === 0 ? background_graphics_even : background_graphics_odd;
+			graphics.drawPolygon(bg_polygons[i]);
+		}
+		background_graphics_odd.endFill();
+		background_graphics_even.endFill();
+		background_group.add(background_graphics_even);
+		background_group.add(background_graphics_odd);
+
+		var center_hexagon_graphics = new Phaser.Graphics(game, 0, 0);
+		var center_hexagon_poly = buildRegularPolygon(0, 0, PLAYER_RAIL_SIDES, CENTER_RADIUS);
+		center_hexagon_graphics.clear();
+		center_hexagon_graphics.beginFill(CENTER_COLOR);
+		center_hexagon_graphics.drawPolygon(center_hexagon_poly);
+		center_hexagon_graphics.endFill();
+		center_group.add(center_hexagon_graphics);
+
+		player_graphics = game.add.graphics(0, 0);
+		setUpIntervals();
+		updatePlayerInterval();
+		updatePlayerPos();
+	};
+
+	var tryRestart = function()
+	{
+		if (crashed)
+		{
+			restart();
+		}
+	};
+
 	var DuperHexagon = {
 		preload: function ()
 		{
@@ -303,7 +375,6 @@
 		{
 			song = game.add.audio('pixel_world');
 			song.loop = true;
-			song.play();
 
 			// Do not stop when the window loses focus
 			game.stage.disableVisibilityChange = true;
@@ -315,35 +386,11 @@
 			center_group     = game.add.group();
 			player_group     = game.add.group();
 
-			var bg_polygons = backgroundTriangles();
-			var background_graphics_odd = new Phaser.Graphics(game, 0, 0);
-			var background_graphics_even = new Phaser.Graphics(game, 0, 0);
-			background_graphics_odd.beginFill(BGCOLOR1);
-			background_graphics_even.beginFill(BGCOLOR2);
-			for (var i = 0; i < bg_polygons.length; i++)
-			{
-				var graphics = i % 2 === 0 ? background_graphics_even : background_graphics_odd;
-				graphics.drawPolygon(bg_polygons[i]);
-			}
-			background_graphics_odd.endFill();
-			background_graphics_even.endFill();
-			background_group.add(background_graphics_even);
-			background_group.add(background_graphics_odd);
-
-			var center_hexagon_graphics = new Phaser.Graphics(game, 0, 0);
-			var center_hexagon_poly = buildRegularPolygon(0, 0, PLAYER_RAIL_SIDES, CENTER_RADIUS);
-			center_hexagon_graphics.clear();
-			center_hexagon_graphics.beginFill(CENTER_COLOR);
-			center_hexagon_graphics.drawPolygon(center_hexagon_poly);
-			center_hexagon_graphics.endFill();
-			center_group.add(center_hexagon_graphics);
-
-			player_graphics = game.add.graphics(0, 0);
-			setUpIntervals();
-			updatePlayerInterval();
-			updatePlayerPos();
-
 			cursors = game.input.keyboard.createCursorKeys();
+
+			restart();
+			var enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
+			enter.onDown.add(tryRestart);
 		},
 		update: function ()
 		{
@@ -382,5 +429,5 @@
 
 	window.setTimeout(someObstacles, 1000);
 
-	var game = new Phaser.Game(SIZE_X, SIZE_Y, Phaser.AUTO, '', DuperHexagon);
+	var game = new Phaser.Game(SIZE_X, SIZE_Y, Phaser.AUTO, 'game', DuperHexagon);
 })();
