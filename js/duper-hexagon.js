@@ -15,7 +15,6 @@
 	var OBSTACLE_COLOR = PLAYER_COLOR;
 	var BGCOLOR1 = 0x663366;
 	var BGCOLOR2 = 0x442244;
-	var OBSTACLE_WIDTH = 40;
 	var OBSTACLE_SPEED = 4;
 
 	var sqrt3 = Math.sqrt(3);
@@ -80,7 +79,7 @@
 	var danger_zone = [];
 	var leave_danger_zone = [];
 
-	var drawObstacle = function (interval)
+	var drawSingleObstacle = function (interval, obstacle_width)
 	{
 		var calc_interval = function (interval)
 		{
@@ -103,8 +102,8 @@
 			{
 				proportion_y[interval] *= -1;
 			}
-			var danger = (CENTER_RADIUS + CENTER_BORDER + PLAYER_RADIUS);
-			var leave_danger = (CENTER_RADIUS + CENTER_BORDER - PLAYER_RADIUS);
+			var danger = CENTER_RADIUS + CENTER_BORDER + PLAYER_RADIUS;
+			var leave_danger = CENTER_RADIUS + CENTER_BORDER - PLAYER_RADIUS;
 			danger_zone[interval] = {
 				x: danger * proportion_x[interval],
 				y: danger * proportion_y[interval]};
@@ -124,10 +123,10 @@
 			calc_interval(interval + 1);
 		}
 
-		var p3 = new Phaser.Point(interval_points[interval + 1].x + OBSTACLE_WIDTH * proportion_x[interval + 1],
-			interval_points[interval + 1].y + OBSTACLE_WIDTH * proportion_y[interval + 1]);
-		var p4 = new Phaser.Point(interval_points[interval].x + OBSTACLE_WIDTH * proportion_x[interval],
-			interval_points[interval].y + OBSTACLE_WIDTH * proportion_y[interval]);
+		var p3 = new Phaser.Point(interval_points[interval + 1].x + obstacle_width * proportion_x[interval + 1],
+			interval_points[interval + 1].y + obstacle_width * proportion_y[interval + 1]);
+		var p4 = new Phaser.Point(interval_points[interval].x + obstacle_width * proportion_x[interval],
+			interval_points[interval].y + obstacle_width * proportion_y[interval]);
 		var points = [p1, p2, p3, p4];
 		var shape = new Phaser.Polygon(points);
 		var graphics = new Phaser.Graphics(game, 0, 0);
@@ -297,6 +296,7 @@
 	var restart = function()
 	{
 		crashed = false;
+		tick = 0;
 
 		// Clean up a previous run
 		if (player_graphics)
@@ -310,8 +310,8 @@
 			blocked_intervals = [false, false, false, false, false, false];
 		}
 
-		// If the user restarts again before the song started fading out, we for the song to finish fading out before
-		// playing it again
+		// If the user restarts before the song finished fading out, wait for it to finish fading out before playing it
+		// again (otherwise, it won't be played)
 		var playSong = function()
 		{
 			song.volume = 1;
@@ -366,6 +366,77 @@
 		}
 	};
 
+	var OBSTACLE_TYPES = ['single45', 'single5op', 'labyrinth'];
+	var tick = 0;
+	var next_obstacle_set_at = 0;
+	var next_obstacles = [];
+
+	// Create and enqueue sets of obstacles
+	var obstacleSets = function()
+	{
+		var drawWave = function(width, tick, gaps)
+		{
+			for (var interval = 0; interval < 6; interval++)
+			{
+				if (gaps.indexOf(interval) === -1)
+				{
+					next_obstacles.push({
+						tick: tick,
+						width: width,
+						interval: interval
+					});
+				}
+			}
+		};
+
+		if (tick === next_obstacle_set_at)
+		{
+			var type = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
+			if (type === 'single45')
+			{
+				for (var wave = 0; wave < 4; wave++)
+				{
+					var i1 = Math.floor(Math.random() * 6);
+					var i2 = Math.floor(Math.random() * 6);
+					drawWave(OBSTACLE_SPEED * 10, tick + wave * 60, [i1, i2]);
+				}
+				next_obstacle_set_at += 240;
+			} else if (type === 'single5op')
+			{
+				var gap = Math.floor(Math.random() * 6);
+				var alt_gap = (gap + 3) % 6;
+				for (var wave = 0; wave < 4; wave++)
+				{
+					drawWave(OBSTACLE_SPEED * 10, tick + wave * 60, wave % 2 === 0 ? [gap] : [alt_gap]);
+				}
+				next_obstacle_set_at += 240;
+			} else if (type === 'labyrinth') {
+				var gap = Math.floor(Math.random() * 6);
+				for (var wave = 0; wave < 6; wave++)
+				{
+					var next_gap = (gap + (Math.random() > 0.5 ? 1 : -1) + 6) % 6;
+					drawWave(OBSTACLE_SPEED * 20, tick + wave * 40, [gap]);
+					if (wave < 5)
+					{
+						drawWave(OBSTACLE_SPEED * 20, tick + wave * 40 + 20, [gap, next_gap]);
+					}
+					gap = next_gap;
+				}
+				next_obstacle_set_at += 280;
+			}
+		}
+		drawPartialSets();
+	};
+
+	var drawPartialSets = function()
+	{
+		while (next_obstacles.length > 0 && next_obstacles[0].tick === tick)
+		{
+			var obstacle = next_obstacles.shift();
+			drawSingleObstacle(obstacle.interval, obstacle.width);
+		}
+	};
+
 	var DuperHexagon = {
 		preload: function ()
 		{
@@ -411,7 +482,9 @@
 					increasePlayerPos(PLAYER_SPEED);
 					updatePlayerPos();
 				}
+				obstacleSets();
 				updateObstacles();
+				tick++;
 			}
 		}
 	};
@@ -419,15 +492,7 @@
 	// TODO: add obstacles inside the update function
 	var someObstacles = function()
 	{
-		var i1 = Math.floor(Math.random() * 6);
-		var i2 = Math.floor(Math.random() * 6);
-		for (var i = 0; i < 6; i++)
-		{
-			if (i !== i1 && i !== i2)
-			{
-				drawObstacle(i);
-			}
-		}
+
 		window.setTimeout(someObstacles, 1000);
 	};
 
