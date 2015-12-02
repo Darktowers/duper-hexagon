@@ -297,6 +297,8 @@
 	{
 		crashed = false;
 		tick = 0;
+		next_obstacle_set_at = 0;
+		next_obstacles = [];
 
 		// Clean up a previous run
 		if (player_graphics)
@@ -430,7 +432,7 @@
 					drawWave(OBSTACLE_SPEED * 10, tick + wave * 80, [0, 2, 4]);
 					drawWave(OBSTACLE_SPEED * 10, tick + wave * 80 + 40, [1, 3, 5]);
 				}
-				next_obstacle_set_at += 240;
+				next_obstacle_set_at += 270;
 			}
 		}
 		drawPartialSets();
