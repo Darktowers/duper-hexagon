@@ -22,7 +22,7 @@
 	var player_position = 5 * Math.PI / 6;
 
 	var intervals;
-	var blocked_intervals = [false, false, false, false, false, false];
+	var blocked_intervals = [0, 0, 0, 0, 0, 0];
 	var crashed = false;
 
 	var setUpIntervals = function ()
@@ -175,7 +175,7 @@
 						(points[0].x / danger_zone[interval].x < 1 || points[0].y / danger_zone[interval].y < 1))
 				{
 					obstacle.entered_danger = true;
-					blocked_intervals[interval] = true;
+					blocked_intervals[interval]++;
 					if (player_interval === interval)
 					{
 						onCrash();
@@ -184,7 +184,7 @@
 						(points[3].x / leave_danger_zone[interval].x < 1 || points[3].y / leave_danger_zone[interval].y < 1))
 				{
 					obstacle.left_danger = true;
-					blocked_intervals[interval] = false;
+					blocked_intervals[interval]--;
 				}
 				obstacle.shape.setTo(points);
 				graphics.clear();
@@ -272,7 +272,7 @@
 			player_position -= 2 * Math.PI;
 		}
 		updatePlayerInterval();
-		if (blocked_intervals[player_interval])
+		if (blocked_intervals[player_interval] > 0)
 		{
 			player_position = old_pos;
 			updatePlayerInterval();
@@ -307,7 +307,7 @@
 				obstacle.graphics.clear();
 			});
 			obstacles = [];
-			blocked_intervals = [false, false, false, false, false, false];
+			blocked_intervals = [0, 0, 0, 0, 0, 0];
 		}
 
 		// If the user restarts before the song finished fading out, wait for it to finish fading out before playing it
@@ -366,7 +366,7 @@
 		}
 	};
 
-	var OBSTACLE_TYPES = ['single45', 'single5op', 'labyrinth'];
+	var OBSTACLE_TYPES = ['single45', 'single5op', 'labyrinth', 'quickalt'];
 	var tick = 0;
 	var next_obstacle_set_at = 0;
 	var next_obstacles = [];
@@ -423,6 +423,14 @@
 					gap = next_gap;
 				}
 				next_obstacle_set_at += 280;
+			} else if (type === 'quickalt')
+			{
+				for (var wave = 0; wave < 3; wave++)
+				{
+					drawWave(OBSTACLE_SPEED * 10, tick + wave * 80, [0, 2, 4]);
+					drawWave(OBSTACLE_SPEED * 10, tick + wave * 80 + 40, [1, 3, 5]);
+				}
+				next_obstacle_set_at += 240;
 			}
 		}
 		drawPartialSets();
@@ -488,15 +496,6 @@
 			}
 		}
 	};
-
-	// TODO: add obstacles inside the update function
-	var someObstacles = function()
-	{
-
-		window.setTimeout(someObstacles, 1000);
-	};
-
-	window.setTimeout(someObstacles, 1000);
 
 	var game = new Phaser.Game(SIZE_X, SIZE_Y, Phaser.AUTO, 'game', DuperHexagon);
 })();
