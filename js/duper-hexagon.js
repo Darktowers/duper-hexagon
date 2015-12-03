@@ -1,4 +1,4 @@
-(function ()
+var duper_hexagon = function ()
 {
 	"use strict";
 
@@ -23,6 +23,7 @@
 
 	var intervals;
 	var blocked_intervals = [0, 0, 0, 0, 0, 0];
+	var playing = false;
 	var crashed = false;
 
 	var setUpIntervals = function ()
@@ -290,12 +291,18 @@
 	var onCrash = function()
 	{
 		crashed = true;
+		playing = false;
 		song.fadeOut(200);
+		crash_callbacks.map(function(cb)
+		{
+			cb();
+		});
 	};
 
 	var restart = function()
 	{
 		crashed = false;
+		playing = true;
 		tick = 0;
 		next_obstacle_set_at = 0;
 		next_obstacles = [];
@@ -358,12 +365,19 @@
 		setUpIntervals();
 		updatePlayerInterval();
 		updatePlayerPos();
+
+		start_callbacks.map(function(cb)
+		{
+			cb();
+		});
+		console.log('b');
 	};
 
 	var tryRestart = function()
 	{
-		if (crashed)
+		if (playing === false)
 		{
+			console.log('a');
 			restart();
 		}
 	};
@@ -472,12 +486,10 @@
 			keys.D     = game.input.keyboard.addKey(Phaser.Keyboard.D);
 			keys.enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
 			keys.enter.onDown.add(tryRestart);
-
-			restart();
 		},
 		update: function ()
 		{
-			if (crashed === false)
+			if (crashed === false && playing === true)
 			{
 				var left  = keys.left.isDown  || keys.A.isDown;
 				var right = keys.right.isDown || keys.D.isDown;
@@ -500,4 +512,19 @@
 	};
 
 	var game = new Phaser.Game(SIZE_X, SIZE_Y, Phaser.AUTO, 'game', DuperHexagon);
-})();
+
+	var start_callbacks = [];
+	var crash_callbacks = [];
+
+	return {
+		start: tryRestart,
+		addStartHandler : function(cb)
+		{
+			start_callbacks.push(cb);
+		},
+		addCrashHandler : function(cb)
+		{
+			crash_callbacks.push(cb);
+		}
+	};
+};
