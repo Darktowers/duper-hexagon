@@ -8,6 +8,7 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 		crashed: false,
 		time: 0,
 		best_times: [],
+		loading: false,
 		start: function(level)
 		{
 			$scope.state.current_level = level;
@@ -15,6 +16,13 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 			{
 				$scope.state.best_times[$scope.state.current_level] = 0;
 			}
+
+			$scope.state.loading = true;
+			game.addLoadHandler(function()
+			{
+				$scope.state.loading = false;
+			});
+
 			game.start(level);
 		}
 	};

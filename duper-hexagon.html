@@ -19,7 +19,7 @@
 <div id="main">
     <div id="game-wrapper">
         <div id="game"></div>
-        <div id="menu" ng-show="state.started === false || state.crashed === true">
+        <div id="menu" ng-show="state.started === false || state.crashed === true || state.loading === true">
             <span ng-if="state.started === false">
                 <h3>Duper Hexagon</h3>
             </span>
@@ -33,8 +33,11 @@
                 </p>
                 <p>Press Enter to restart, or choose another level:</p>
             </span>
-            <button ng-click="state.start(1)">Level 1</button>
-            <button ng-click="state.start(2)">Level 2</button>
+            <span ng-show="state.started === false || state.crashed === true">
+                <button ng-click="state.start(1)">Level 1</button>
+                <button ng-click="state.start(2)">Level 2</button>
+            </span>
+            <span ng-show="state.loading === true">Loading...</span>
         </div>
     </div>
     <p>Press Left and Right to turn. Hit Enter to restart if you've crashed.</p>

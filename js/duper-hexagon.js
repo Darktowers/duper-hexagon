@@ -14,7 +14,8 @@ var duper_hexagon = function ()
 			bgcolor2: 0x442244,
 			obstacle_speed: 4,
 			first_tick: 0,
-			obstacle_types: ['single45', 'single5op', 'labyrinth', 'quickalt']
+			obstacle_types: ['single45', 'single5op', 'labyrinth', 'quickalt'],
+			song: 'pixel_world'
 		},
 		{
 			rotation_speed: 0.02,
@@ -26,7 +27,8 @@ var duper_hexagon = function ()
 			bgcolor2: 0x221122,
 			obstacle_speed: 8,
 			first_tick: 30,
-			obstacle_types: ['single45', 'single5op', 'ifuckedup', 'labyrinth', 'quickalt']
+			obstacle_types: ['single45', 'single5op', 'ifuckedup', 'labyrinth', 'quickalt'],
+			song: 'second_source'
 		}
 	];
 
@@ -325,6 +327,10 @@ var duper_hexagon = function ()
 	{
 		level = levels[level_index] ? levels[level_index] : levels[curr_level];
 		curr_level = level_index ? level_index : curr_level;
+		music_loaded = false;
+
+		song = game.add.audio(level.song);
+		song.loop = true;
 
 		crashed = false;
 		playing = true;
@@ -498,16 +504,17 @@ var duper_hexagon = function ()
 		}
 	};
 
+	var music_loaded = false;
+
 	var DuperHexagon = {
 		preload: function ()
 		{
 			game.load.audio('pixel_world', ['assets/music/pixel_world_lo.ogg', 'assets/music/pixel_world_lo.mp3']);
+			game.load.audio('second_source', ['assets/music/second_source_lo.ogg', 'assets/music/second_source_lo.mp3']);
+			game.load.audio('reboot_complete', ['assets/music/reboot_complete_lo.ogg', 'assets/music/reboot_complete_lo.mp3'])
 		},
 		create: function ()
 		{
-			song = game.add.audio('pixel_world');
-			song.loop = true;
-
 			// Do not stop when the window loses focus
 			game.stage.disableVisibilityChange = true;
 			game.world.setBounds(-SIZE_X / 2, -SIZE_Y / 2, SIZE_X / 2, SIZE_Y / 2);
@@ -529,38 +536,53 @@ var duper_hexagon = function ()
 		},
 		update: function ()
 		{
-			if (crashed === false && playing === true)
+			if (music_loaded)
 			{
-				var left  = keys.left.isDown  || keys.A.isDown;
-				var right = keys.right.isDown || keys.D.isDown;
-				game.world.rotation += level.rotation_speed;
-				if (left)
+				if (crashed === false && playing === true)
 				{
-					increasePlayerPos(-level.player_speed);
-					updatePlayerPos();
+					var left  = keys.left.isDown  || keys.A.isDown;
+					var right = keys.right.isDown || keys.D.isDown;
+					game.world.rotation += level.rotation_speed;
+					if (left)
+					{
+						increasePlayerPos(-level.player_speed);
+						updatePlayerPos();
+					}
+					else if (right)
+					{
+						increasePlayerPos(level.player_speed);
+						updatePlayerPos();
+					}
+					obstacleSets();
+					updateObstacles();
+					tick++;
 				}
-				else if (right)
+			} else if (level && this.cache.isSoundDecoded(level.song))
+			{
+				music_loaded = true;
+				loaded_callbacks.map(function(cb)
 				{
-					increasePlayerPos(level.player_speed);
-					updatePlayerPos();
-				}
-				obstacleSets();
-				updateObstacles();
-				tick++;
+					cb();
+				});
 			}
 		}
 	};
 
 	var game = new Phaser.Game(SIZE_X, SIZE_Y, Phaser.AUTO, 'game', DuperHexagon);
 
-	var start_callbacks = [];
-	var crash_callbacks = [];
+	var start_callbacks  = [];
+	var loaded_callbacks = [];
+	var crash_callbacks  = [];
 
 	return {
 		start: tryRestart,
 		addStartHandler : function(cb)
 		{
 			start_callbacks.push(cb);
+		},
+		addLoadHandler : function(cb)
+		{
+			loaded_callbacks.push(cb);
 		},
 		addCrashHandler : function(cb)
 		{
