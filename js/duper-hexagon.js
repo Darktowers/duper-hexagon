@@ -2,20 +2,40 @@ var duper_hexagon = function ()
 {
 	"use strict";
 
+	var levels = [
+		{},
+		{
+			rotation_speed: 0.01,
+			player_speed: Math.PI / 40,
+			player_color: 0xFF66FF,
+			center_color: 0xFF33FF,
+			obstacle_color: 0xFF66FF,
+			bgcolor1: 0x663366,
+			bgcolor2: 0x442244,
+			obstacle_speed: 4,
+			first_tick: 0,
+			obstacle_types: ['single45', 'single5op', 'labyrinth', 'quickalt']
+		},
+		{
+			rotation_speed: 0.02,
+			player_speed: Math.PI / 20,
+			player_color: 0x994499,
+			center_color: 0x993399,
+			obstacle_color: 0x994499,
+			bgcolor1: 0x331C33,
+			bgcolor2: 0x221122,
+			obstacle_speed: 8,
+			first_tick: 30,
+			obstacle_types: ['single45', 'single5op', 'ifuckedup', 'labyrinth', 'quickalt']
+		}
+	];
+
 	var SIZE_X = 800;
 	var SIZE_Y = 600;
-	var ROTATION_SPEED = 0.01;
-	var PLAYER_RAIL_SIDES = 6;
 	var PLAYER_RADIUS = 10;
 	var CENTER_RADIUS = 40;
 	var CENTER_BORDER = 20;
-	var PLAYER_SPEED = Math.PI / 40;
-	var PLAYER_COLOR = 0xFF66FF;
-	var CENTER_COLOR = 0xFF33FF;
-	var OBSTACLE_COLOR = PLAYER_COLOR;
-	var BGCOLOR1 = 0x663366;
-	var BGCOLOR2 = 0x442244;
-	var OBSTACLE_SPEED = 4;
+	var NUM_INTERVALS = 6;
 
 	var sqrt3 = Math.sqrt(3);
 	var player_interval;
@@ -29,14 +49,14 @@ var duper_hexagon = function ()
 	var setUpIntervals = function ()
 	{
 		intervals = [0];
-		var interval = 2 * Math.PI / PLAYER_RAIL_SIDES;
-		for (var i = 1; i <= PLAYER_RAIL_SIDES; i++)
+		var interval = 2 * Math.PI / NUM_INTERVALS;
+		for (var i = 1; i <= NUM_INTERVALS; i++)
 		{
 			intervals.push(i * interval);
 		}
 
 		var player_poly = buildRegularPolygon(0, CENTER_RADIUS + CENTER_BORDER, 3, PLAYER_RADIUS, Math.PI / 2);
-		player_graphics.beginFill(PLAYER_COLOR);
+		player_graphics.beginFill(level.player_color);
 		player_graphics.drawPolygon(player_poly);
 		player_graphics.endFill();
 	};
@@ -131,11 +151,11 @@ var duper_hexagon = function ()
 		var points = [p1, p2, p3, p4];
 		var shape = new Phaser.Polygon(points);
 		var graphics = new Phaser.Graphics(game, 0, 0);
-		graphics.beginFill(OBSTACLE_COLOR);
+		graphics.beginFill(level.obstacle_color);
 		graphics.drawPolygon(shape);
 		graphics.endFill();
 		obstacles_group.add(graphics);
-		obstacles.push({shape: shape, graphics: graphics, interval: interval, speed: OBSTACLE_SPEED, points: points,
+		obstacles.push({shape: shape, graphics: graphics, interval: interval, speed: level.obstacle_speed, points: points,
 			entered_danger: false, left_danger: false});
 	};
 
@@ -151,14 +171,14 @@ var duper_hexagon = function ()
 			var old_y_0 = points[0].y;
 			var old_x_2 = points[2].x;
 			var old_y_2 = points[2].y;
-			points[0].x -= OBSTACLE_SPEED * proportion_x[interval];
-			points[0].y -= OBSTACLE_SPEED * proportion_y[interval];
-			points[1].x -= OBSTACLE_SPEED * proportion_x[interval + 1];
-			points[1].y -= OBSTACLE_SPEED * proportion_y[interval + 1];
-			points[2].x -= OBSTACLE_SPEED * proportion_x[interval + 1];
-			points[2].y -= OBSTACLE_SPEED * proportion_y[interval + 1];
-			points[3].x -= OBSTACLE_SPEED * proportion_x[interval];
-			points[3].y -= OBSTACLE_SPEED * proportion_y[interval];
+			points[0].x -= level.obstacle_speed * proportion_x[interval];
+			points[0].y -= level.obstacle_speed * proportion_y[interval];
+			points[1].x -= level.obstacle_speed * proportion_x[interval + 1];
+			points[1].y -= level.obstacle_speed * proportion_y[interval + 1];
+			points[2].x -= level.obstacle_speed * proportion_x[interval + 1];
+			points[2].y -= level.obstacle_speed * proportion_y[interval + 1];
+			points[3].x -= level.obstacle_speed * proportion_x[interval];
+			points[3].y -= level.obstacle_speed * proportion_y[interval];
 
 			// turned from positive to negative or vice versa
 			if (old_x_0 * points[0].x <= 0 && old_y_0 * points[0].y <= 0)
@@ -189,7 +209,7 @@ var duper_hexagon = function ()
 				}
 				obstacle.shape.setTo(points);
 				graphics.clear();
-				graphics.beginFill(OBSTACLE_COLOR);
+				graphics.beginFill(level.obstacle_color);
 				graphics.drawPolygon(obstacle.shape);
 				graphics.endFill();
 			}
@@ -299,13 +319,19 @@ var duper_hexagon = function ()
 		});
 	};
 
-	var restart = function()
+	var curr_level;
+	var level;
+	var restart = function(level_index)
 	{
+		level = levels[level_index] ? levels[level_index] : levels[curr_level];
+		curr_level = level_index ? level_index : curr_level;
+
 		crashed = false;
 		playing = true;
 		tick = 0;
-		next_obstacle_set_at = 0;
+		next_obstacle_set_at = level.first_tick;
 		next_obstacles = [];
+		obstacle_types = level.obstacle_types;
 
 		// Clean up a previous run
 		if (player_graphics)
@@ -341,8 +367,8 @@ var duper_hexagon = function ()
 		var bg_polygons = backgroundTriangles();
 		var background_graphics_odd = new Phaser.Graphics(game, 0, 0);
 		var background_graphics_even = new Phaser.Graphics(game, 0, 0);
-		background_graphics_odd.beginFill(BGCOLOR1);
-		background_graphics_even.beginFill(BGCOLOR2);
+		background_graphics_odd.beginFill(level.bgcolor1);
+		background_graphics_even.beginFill(level.bgcolor2);
 		for (var i = 0; i < bg_polygons.length; i++)
 		{
 			var graphics = i % 2 === 0 ? background_graphics_even : background_graphics_odd;
@@ -354,9 +380,9 @@ var duper_hexagon = function ()
 		background_group.add(background_graphics_odd);
 
 		var center_hexagon_graphics = new Phaser.Graphics(game, 0, 0);
-		var center_hexagon_poly = buildRegularPolygon(0, 0, PLAYER_RAIL_SIDES, CENTER_RADIUS);
+		var center_hexagon_poly = buildRegularPolygon(0, 0, NUM_INTERVALS, CENTER_RADIUS);
 		center_hexagon_graphics.clear();
-		center_hexagon_graphics.beginFill(CENTER_COLOR);
+		center_hexagon_graphics.beginFill(level.center_color);
 		center_hexagon_graphics.drawPolygon(center_hexagon_poly);
 		center_hexagon_graphics.endFill();
 		center_group.add(center_hexagon_graphics);
@@ -370,19 +396,17 @@ var duper_hexagon = function ()
 		{
 			cb();
 		});
-		console.log('b');
 	};
 
-	var tryRestart = function()
+	var tryRestart = function(level)
 	{
-		if (playing === false)
+		if (playing === false && (level !== undefined || curr_level !== undefined))
 		{
-			console.log('a');
-			restart();
+			restart(level);
 		}
 	};
 
-	var OBSTACLE_TYPES = ['single45', 'single5op', 'labyrinth', 'quickalt'];
+	var obstacle_types;
 	var tick = 0;
 	var next_obstacle_set_at = 0;
 	var next_obstacles = [];
@@ -407,46 +431,59 @@ var duper_hexagon = function ()
 
 		if (tick === next_obstacle_set_at)
 		{
-			var type = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
+			var type = obstacle_types[Math.floor(Math.random() * obstacle_types.length)];
 			if (type === 'single45')
 			{
 				for (var wave = 0; wave < 4; wave++)
 				{
 					var i1 = Math.floor(Math.random() * 6);
 					var i2 = Math.floor(Math.random() * 6);
-					drawWave(OBSTACLE_SPEED * 10, tick + wave * 60, [i1, i2]);
+					drawWave(40, tick + wave * 240 / level.obstacle_speed, [i1, i2]);
 				}
-				next_obstacle_set_at += 240;
+				next_obstacle_set_at += 960 / level.obstacle_speed;
 			} else if (type === 'single5op')
 			{
 				var gap = Math.floor(Math.random() * 6);
 				var alt_gap = (gap + 3) % 6;
 				for (var wave = 0; wave < 4; wave++)
 				{
-					drawWave(OBSTACLE_SPEED * 10, tick + wave * 60, wave % 2 === 0 ? [gap] : [alt_gap]);
+					drawWave(40, tick + wave * 240 / level.obstacle_speed, wave % 2 === 0 ? [gap] : [alt_gap]);
 				}
-				next_obstacle_set_at += 240;
+				next_obstacle_set_at += 960 / level.obstacle_speed;
 			} else if (type === 'labyrinth') {
 				var gap = Math.floor(Math.random() * 6);
 				for (var wave = 0; wave < 6; wave++)
 				{
 					var next_gap = (gap + (Math.random() > 0.5 ? 1 : -1) + 6) % 6;
-					drawWave(OBSTACLE_SPEED * 20, tick + wave * 40, [gap]);
+					drawWave(80, tick + wave * 160 / level.obstacle_speed, [gap]);
 					if (wave < 5)
 					{
-						drawWave(OBSTACLE_SPEED * 20, tick + wave * 40 + 20, [gap, next_gap]);
+						drawWave(80, tick + wave * 160 / level.obstacle_speed + 80 / level.obstacle_speed, [gap, next_gap]);
 					}
 					gap = next_gap;
 				}
-				next_obstacle_set_at += 280;
+				next_obstacle_set_at += 1120 / level.obstacle_speed;
+			} else if (type === 'ifuckedup') {
+				var gap = Math.floor(Math.random() * 6);
+				for (var wave = 0; wave < 6; wave++)
+				{
+					var next_gap = (gap + (Math.random() > 0.5 ? 1 : -1) + 6) % 6;
+					drawWave(40, tick + wave * 160 / level.obstacle_speed, [gap]);
+					if (wave < 5)
+					{
+						drawWave(40, tick + wave * 160 / level.obstacle_speed + 80 / level.obstacle_speed, [gap, next_gap]);
+					}
+					gap = next_gap;
+				}
+				next_obstacle_set_at += 1120 / level.obstacle_speed;
 			} else if (type === 'quickalt')
 			{
 				for (var wave = 0; wave < 3; wave++)
 				{
-					drawWave(OBSTACLE_SPEED * 10, tick + wave * 80, [0, 2, 4]);
-					drawWave(OBSTACLE_SPEED * 10, tick + wave * 80 + 40, [1, 3, 5]);
+					drawWave(40, tick + wave * 320 / level.obstacle_speed, [0, 2, 4]);
+					drawWave(40, tick + wave * 320 / level.obstacle_speed + 160 / level.obstacle_speed, [1, 3, 5]);
 				}
-				next_obstacle_set_at += 270;
+				next_obstacle_set_at += 1080 / level.obstacle_speed;
 			}
 		}
 		drawPartialSets();
@@ -485,7 +522,10 @@ var duper_hexagon = function ()
 			keys.A     = game.input.keyboard.addKey(Phaser.Keyboard.A);
 			keys.D     = game.input.keyboard.addKey(Phaser.Keyboard.D);
 			keys.enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
-			keys.enter.onDown.add(tryRestart);
+			keys.enter.onDown.add(function()
+			{
+				tryRestart();
+			});
 		},
 		update: function ()
 		{
@@ -493,15 +533,15 @@ var duper_hexagon = function ()
 			{
 				var left  = keys.left.isDown  || keys.A.isDown;
 				var right = keys.right.isDown || keys.D.isDown;
-				game.world.rotation += ROTATION_SPEED;
+				game.world.rotation += level.rotation_speed;
 				if (left)
 				{
-					increasePlayerPos(-PLAYER_SPEED);
+					increasePlayerPos(-level.player_speed);
 					updatePlayerPos();
 				}
 				else if (right)
 				{
-					increasePlayerPos(PLAYER_SPEED);
+					increasePlayerPos(level.player_speed);
 					updatePlayerPos();
 				}
 				obstacleSets();

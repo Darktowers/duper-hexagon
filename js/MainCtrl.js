@@ -7,8 +7,16 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 		started: false,
 		crashed: false,
 		time: 0,
-		best_time: 0,
-		start: game.start
+		best_times: [],
+		start: function(level)
+		{
+			$scope.state.current_level = level;
+			if (!$scope.state.best_times[$scope.state.current_level])
+			{
+				$scope.state.best_times[$scope.state.current_level] = 0;
+			}
+			game.start(level);
+		}
 	};
 
 	var update_interval;
@@ -28,9 +36,10 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 	game.addCrashHandler(function()
 	{
 		$scope.state.crashed = true;
-		if ($scope.state.time > $scope.state.best_time)
+		$scope.state.time = Number($scope.state.time);
+		if ($scope.state.time > $scope.state.best_times[$scope.state.current_level])
 		{
-			$scope.state.best_time = $scope.state.time;
+			$scope.state.best_times[$scope.state.current_level] = $scope.state.time;
 		}
 		$interval.cancel(update_interval);
 		$timeout(); // update scope

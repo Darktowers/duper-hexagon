@@ -22,15 +22,19 @@
         <div id="menu" ng-show="state.started === false || state.crashed === true">
             <span ng-if="state.started === false">
                 <h3>Duper Hexagon</h3>
-                <button ng-click="state.start()">Start!</button>
             </span>
             <span ng-show="state.crashed === true">
                 <h3>Your time: {{state.time}} s.</h3>
                 <p>
-                    <span ng-show="state.best_time > state.time">Your record: {{state.best_time}} s.</span>
-                    <span ng-show="state.best_time <= state.time">New record!</span>
+                    <span ng-show="state.best_times[state.current_level] > state.time">
+                        Your record: {{state.best_times[state.current_level]}} s.</span>
+                    <span ng-show="state.best_times[state.current_level] <= state.time">
+                        New record!</span>
                 </p>
+                <p>Press Enter to restart, or choose another level:</p>
             </span>
+            <button ng-click="state.start(1)">Level 1</button>
+            <button ng-click="state.start(2)">Level 2</button>
         </div>
     </div>
     <p>Press Left and Right to turn. Hit Enter to restart if you've crashed.</p>
