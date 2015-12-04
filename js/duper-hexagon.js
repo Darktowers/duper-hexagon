@@ -325,6 +325,16 @@ var duper_hexagon = function ()
 	var level;
 	var restart = function(level_index)
 	{
+		// Do not proceed if we are still in the preloading phase. Instead of that, try again in 100 ms.
+		if (game_created === false)
+		{
+			window.setTimeout(function()
+			{
+				restart(level_index);
+			}, 100);
+			return;
+		}
+
 		level = levels[level_index] ? levels[level_index] : levels[curr_level];
 		curr_level = level_index ? level_index : curr_level;
 		music_loaded = false;
@@ -505,6 +515,7 @@ var duper_hexagon = function ()
 	};
 
 	var music_loaded = false;
+	var game_created = false;
 
 	var DuperHexagon = {
 		preload: function ()
@@ -515,6 +526,7 @@ var duper_hexagon = function ()
 		},
 		create: function ()
 		{
+			game_created = true;
 			// Do not stop when the window loses focus
 			game.stage.disableVisibilityChange = true;
 			game.world.setBounds(-SIZE_X / 2, -SIZE_Y / 2, SIZE_X / 2, SIZE_Y / 2);
