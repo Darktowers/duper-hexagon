@@ -38,6 +38,8 @@ var duper_hexagon = function ()
 	var CENTER_RADIUS = 40;
 	var CENTER_BORDER = 20;
 	var NUM_INTERVALS = 6;
+	var PICKUP_HEIGHT = 60;
+	var PICKUP_WIDTH  = 52;
 
 	var sqrt3 = Math.sqrt(3);
 	var player_interval;
@@ -65,6 +67,8 @@ var duper_hexagon = function ()
 
 	// Points which, when connected to (0,0) through a segment, divide the game screen in six equilateral triangles
 	var interval_points = [];
+	// Points which, when connected to (0,0) through a segment, become a set of medians for the above triangles
+	var median_interval_points = [];
 
 	var backgroundTriangles = function ()
 	{
@@ -81,6 +85,13 @@ var duper_hexagon = function ()
 			interval_points.push(new Phaser.Point(h, -l / 2));
 			interval_points.push(new Phaser.Point(h, l / 2));
 			interval_points.push(interval_points[0]);
+			median_interval_points.push(new Phaser.Point(-h/2, 3 * l / 4));
+			median_interval_points.push(new Phaser.Point(-h, 0));
+			median_interval_points.push(new Phaser.Point(-h/2, - 3 * l / 4));
+			median_interval_points.push(new Phaser.Point(h/2, - 3 * l / 4));
+			median_interval_points.push(new Phaser.Point(h, 0));
+			median_interval_points.push(new Phaser.Point(h/2, 3 * l / 4));
+			median_interval_points.push(median_interval_points[0]);
 		}
 
 		var triangles = [];
@@ -93,63 +104,73 @@ var duper_hexagon = function ()
 
 	// Proportions for calculating point locations. If a point (c,d) is 40 units away from point (a,b) on top of an
 	// interval line, then (c,d) = (a + 40 * proportion_x, b + 40 * proportion_y).
-	var proportion_x = [];
-	var proportion_y = [];
-	// List of obstacles
+	var obs_proportion_x = [];
+	var obs_proportion_y = [];
+	var pickup_proportion_x = [];
+	var pickup_proportion_y = [];
+	// Lists of obstacles and pickups
 	var obstacles = [];
+	var pickups = [];
 	// x coordinates for each straight when we know that an obstacle is close enough to the player to actually touch
 	// him/her
-	var danger_zone = [];
-	var leave_danger_zone = [];
+	var obs_danger_zone = [];
+	var obs_leave_danger_zone = [];
+	var pickup_danger_zone = [];
+	var pickup_leave_danger_zone = [];
+
+	var calcInterval = function (interval, is_pickup)
+	{
+		var proportion_x      = is_pickup === true ? pickup_proportion_x      : obs_proportion_x;
+		var proportion_y      = is_pickup === true ? pickup_proportion_y      : obs_proportion_y;
+		var points            = is_pickup === true ? median_interval_points   : interval_points;
+		var danger_zone       = is_pickup === true ? pickup_danger_zone       : obs_danger_zone;
+		var leave_danger_zone = is_pickup === true ? pickup_leave_danger_zone : obs_leave_danger_zone;
+		if (points[interval].x !== 0)
+		{
+			var m = Math.abs(points[interval].y / points[interval].x); // as in y = mx
+			proportion_x[interval] = 1 / Math.sqrt(1 + m * m);
+			proportion_y[interval] = m * proportion_x[interval];
+		} else
+		{
+			proportion_x[interval] = 0;
+			proportion_y[interval] = 1;
+		}
+
+		proportion_x[interval] = points[interval].x < 0 ? -proportion_x[interval] : proportion_x[interval];
+		proportion_y[interval] = points[interval].y < 0 ? -proportion_y[interval] : proportion_y[interval];
+
+		var danger = CENTER_RADIUS + CENTER_BORDER + PLAYER_RADIUS;
+		var leave_danger = CENTER_RADIUS + CENTER_BORDER - PLAYER_RADIUS;
+		if (is_pickup === true)
+		{
+			danger += PICKUP_HEIGHT / 2;
+			leave_danger -= PICKUP_HEIGHT / 2;
+		}
+		danger_zone[interval] = {
+			x: danger * proportion_x[interval],
+			y: danger * proportion_y[interval]};
+		leave_danger_zone[interval] =  {
+			x: leave_danger * proportion_x[interval],
+			y: leave_danger * proportion_y[interval]};
+	};
 
 	var drawSingleObstacle = function (interval, obstacle_width)
 	{
-		var calc_interval = function (interval)
-		{
-			if (interval_points[interval].x !== 0)
-			{
-				var m = Math.abs(interval_points[interval].y / interval_points[interval].x); // as in y = mx
-				proportion_x[interval] = 1 / Math.sqrt(1 + m * m);
-				proportion_y[interval] = m * proportion_x[interval];
-			} else
-			{
-				proportion_x[interval] = 0;
-				proportion_y[interval] = 1;
-			}
-			// TODO: surely there's a nicer way to do this
-			if (interval_points[interval].x < 0)
-			{
-				proportion_x[interval] *= -1;
-			}
-			if (interval_points[interval].y < 0)
-			{
-				proportion_y[interval] *= -1;
-			}
-			var danger = CENTER_RADIUS + CENTER_BORDER + PLAYER_RADIUS;
-			var leave_danger = CENTER_RADIUS + CENTER_BORDER - PLAYER_RADIUS;
-			danger_zone[interval] = {
-				x: danger * proportion_x[interval],
-				y: danger * proportion_y[interval]};
-			leave_danger_zone[interval] =  {
-				x: leave_danger * proportion_x[interval],
-				y: leave_danger * proportion_y[interval]};
-		};
-
 		var p1 = interval_points[interval].clone();
 		var p2 = interval_points[interval + 1].clone();
-		if (proportion_x[interval] === undefined)
+		if (obs_proportion_x[interval] === undefined)
 		{
-			calc_interval(interval);
+			calcInterval(interval);
 		}
-		if (proportion_x[interval + 1] === undefined)
+		if (obs_proportion_x[interval + 1] === undefined)
 		{
-			calc_interval(interval + 1);
+			calcInterval(interval + 1);
 		}
 
-		var p3 = new Phaser.Point(interval_points[interval + 1].x + obstacle_width * proportion_x[interval + 1],
-			interval_points[interval + 1].y + obstacle_width * proportion_y[interval + 1]);
-		var p4 = new Phaser.Point(interval_points[interval].x + obstacle_width * proportion_x[interval],
-			interval_points[interval].y + obstacle_width * proportion_y[interval]);
+		var p3 = new Phaser.Point(interval_points[interval + 1].x + obstacle_width * obs_proportion_x[interval + 1],
+			interval_points[interval + 1].y + obstacle_width * obs_proportion_y[interval + 1]);
+		var p4 = new Phaser.Point(interval_points[interval].x + obstacle_width * obs_proportion_x[interval],
+			interval_points[interval].y + obstacle_width * obs_proportion_y[interval]);
 		var points = [p1, p2, p3, p4];
 		var shape = new Phaser.Polygon(points);
 		var graphics = new Phaser.Graphics(game, 0, 0);
@@ -161,26 +182,47 @@ var duper_hexagon = function ()
 			entered_danger: false, left_danger: false});
 	};
 
-	var updateObstacles = function ()
+	var drawPickup = function(interval)
+	{
+		if (pickup_proportion_x[interval] === undefined)
+		{
+			calcInterval(interval, true);
+		}
+
+		var pickup = game.add.sprite(
+				median_interval_points[interval].x,
+				median_interval_points[interval].y,
+				'pickup');
+		pickup.anchor.x = 0.5;
+		pickup.anchor.y = 0.5;
+		obstacles_group.add(pickup);
+		pickup.interval = interval;
+		pickup.rotation = - 5 * Math.PI/6 + Math.PI * interval / 3;
+		pickups.push(pickup);
+	};
+
+	var updateObstaclesAndPickups = function ()
 	{
 		var to_remove = [];
+		var interval;
+
 		obstacles.map(function (obstacle, index)
 		{
 			var points = obstacle.points;
-			var interval = obstacle.interval;
 			var graphics = obstacle.graphics;
+			interval = obstacle.interval;
 			var old_x_0 = points[0].x;
 			var old_y_0 = points[0].y;
 			var old_x_2 = points[2].x;
 			var old_y_2 = points[2].y;
-			points[0].x -= level.obstacle_speed * proportion_x[interval];
-			points[0].y -= level.obstacle_speed * proportion_y[interval];
-			points[1].x -= level.obstacle_speed * proportion_x[interval + 1];
-			points[1].y -= level.obstacle_speed * proportion_y[interval + 1];
-			points[2].x -= level.obstacle_speed * proportion_x[interval + 1];
-			points[2].y -= level.obstacle_speed * proportion_y[interval + 1];
-			points[3].x -= level.obstacle_speed * proportion_x[interval];
-			points[3].y -= level.obstacle_speed * proportion_y[interval];
+			points[0].x -= level.obstacle_speed * obs_proportion_x[interval];
+			points[0].y -= level.obstacle_speed * obs_proportion_y[interval];
+			points[1].x -= level.obstacle_speed * obs_proportion_x[interval + 1];
+			points[1].y -= level.obstacle_speed * obs_proportion_y[interval + 1];
+			points[2].x -= level.obstacle_speed * obs_proportion_x[interval + 1];
+			points[2].y -= level.obstacle_speed * obs_proportion_y[interval + 1];
+			points[3].x -= level.obstacle_speed * obs_proportion_x[interval];
+			points[3].y -= level.obstacle_speed * obs_proportion_y[interval];
 
 			// turned from positive to negative or vice versa
 			if (old_x_0 * points[0].x <= 0 && old_y_0 * points[0].y <= 0)
@@ -195,7 +237,7 @@ var duper_hexagon = function ()
 			} else
 			{
 				if (obstacle.entered_danger === false &&
-						(points[0].x / danger_zone[interval].x < 1 || points[0].y / danger_zone[interval].y < 1))
+						(points[0].x / obs_danger_zone[interval].x < 1 || points[0].y / obs_danger_zone[interval].y < 1))
 				{
 					obstacle.entered_danger = true;
 					blocked_intervals[interval]++;
@@ -204,7 +246,7 @@ var duper_hexagon = function ()
 						onCrash();
 					}
 				} if (obstacle.left_danger === false &&
-						(points[3].x / leave_danger_zone[interval].x < 1 || points[3].y / leave_danger_zone[interval].y < 1))
+						(points[3].x / obs_leave_danger_zone[interval].x < 1 || points[3].y / obs_leave_danger_zone[interval].y < 1))
 				{
 					obstacle.left_danger = true;
 					blocked_intervals[interval]--;
@@ -221,6 +263,50 @@ var duper_hexagon = function ()
 		{
 			obstacles.splice(i, 1);
 		}
+
+		to_remove = [];
+		pickups.map(function(pickup, index)
+		{
+			interval = pickup.interval;
+			var old_x = pickup.x;
+			var old_y = pickup.y;
+			pickup.x -= level.pickup_speed * pickup_proportion_x[interval];
+			pickup.y -= level.pickup_speed * pickup_proportion_y[interval];
+			// turned from positive to negative or vice versa
+			if (old_x * pickup.x <= 0 && old_y * pickup.y <= 0)
+			{
+				to_remove.push(index);
+				pickup.kill();
+			} else
+			{
+				// Has entered the collision zone with the player
+				if (pickup.x / pickup_danger_zone[interval].x < 1 ||
+						pickup.y / pickup_danger_zone[interval].y < 1)
+				{
+					// Hasn't left the collision zone with the player
+					if (pickup_leave_danger_zone[interval].x / pickup.x  < 1 ||
+							pickup_leave_danger_zone[interval].y / pickup.y < 1)
+					{
+						if (interval === player_interval)
+						{
+							onGotPickup(interval);
+							pickup.kill();
+							to_remove.push(index);
+						}
+					}
+				}
+			}
+		});
+
+		for (i = to_remove.length - 1; i >= 0; i--)
+		{
+			pickups.splice(i, 1);
+		}
+	};
+
+	var onGotPickup = function(interval)
+	{
+		console.log('got pickup', interval);
 	};
 
 	var updatePlayerPos = function ()
@@ -336,6 +422,7 @@ var duper_hexagon = function ()
 		}
 
 		level = levels[level_index] ? levels[level_index] : levels[curr_level];
+		level.pickup_speed = sqrt3 * level.obstacle_speed / 2;
 		curr_level = level_index ? level_index : curr_level;
 		music_loaded = false;
 
@@ -353,10 +440,15 @@ var duper_hexagon = function ()
 		if (player_graphics)
 		{
 			player_graphics.clear();
+			pickups.map(function(pickup)
+			{
+				pickup.kill();
+			});
 			obstacles.map(function(obstacle)
 			{
 				obstacle.graphics.clear();
 			});
+			pickups = [];
 			obstacles = [];
 			blocked_intervals = [0, 0, 0, 0, 0, 0];
 		}
@@ -521,8 +613,11 @@ var duper_hexagon = function ()
 		preload: function ()
 		{
 			game.load.audio('pixel_world', ['assets/music/pixel_world_lo.ogg', 'assets/music/pixel_world_lo.mp3']);
-			game.load.audio('second_source', ['assets/music/second_source_lo.ogg', 'assets/music/second_source_lo.mp3']);
-			game.load.audio('reboot_complete', ['assets/music/reboot_complete_lo.ogg', 'assets/music/reboot_complete_lo.mp3'])
+			game.load.audio('second_source',
+					['assets/music/second_source_lo.ogg', 'assets/music/second_source_lo.mp3']);
+			game.load.audio('reboot_complete',
+					['assets/music/reboot_complete_lo.ogg', 'assets/music/reboot_complete_lo.mp3']);
+			game.load.image('pickup', 'assets/img/pickup.png');
 		},
 		create: function ()
 		{
@@ -566,7 +661,7 @@ var duper_hexagon = function ()
 						updatePlayerPos();
 					}
 					obstacleSets();
-					updateObstacles();
+					updateObstaclesAndPickups();
 					tick++;
 				}
 			} else if (level && this.cache.isSoundDecoded(level.song))
