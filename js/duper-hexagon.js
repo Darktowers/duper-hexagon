@@ -27,7 +27,7 @@ var duper_hexagon = function ()
 			bgcolor2: 0x144444,
 			obstacle_speed: 6,
 			first_tick: 30,
-			obstacle_types: ['single5', 'ifuckedup', 'labyrinth', 'quickalt', 'multi4'],
+			obstacle_types: ['single5', 'ifuckedup', 'quickrepeat', 'quickalt', 'multi4'],
 			song: 'second_source'
 		},
 		{
@@ -40,7 +40,7 @@ var duper_hexagon = function ()
 			bgcolor2: 0x44140C,
 			obstacle_speed: 8,
 			first_tick: 60,
-			obstacle_types: ['fat5', 'fat5op', 'ifuckedup', 'labyrinth', 'quickeralt', 'multi4'],
+			obstacle_types: ['fat5', 'fat5op', 'ifuckedup', 'labyrinth', 'quickeralt', 'multi4', '4fast'],
 			song: 'reboot_complete'
 		}
 	];
@@ -652,25 +652,57 @@ var duper_hexagon = function ()
 					{
 						var flip = Math.random() < 0.5;
 						gaps_normal = [(obs + 1) % 6, (obs + 2) % 6, (obs + 4) % 6, (obs + 5) % 6];
-						gaps_fast   = [obs, (obs + (flip ? 1 : 2)) % 6, (obs + 3) % 6, (obs + (flip ? 4 : 5)) % 6];
+						gaps_fast = [obs, (obs + (flip ? 1 : 2)) % 6, (obs + 3) % 6, (obs + (flip ? 4 : 5)) % 6];
 					} else
 					{
 						gaps_normal = [(obs + 1) % 6, (obs + 3) % 6, (obs + 5) % 6];
-						gaps_fast   = [obs, (obs + 2) % 6, (obs + 4) % 6, (obs + 5) % 6];
+						gaps_fast = [obs, (obs + 2) % 6, (obs + 4) % 6, (obs + 5) % 6];
 					}
 					drawWave(40, tick + wave * 320 / level.obstacle_speed, gaps_normal);
-					drawWave(40, tick + wave * 320 / level.obstacle_speed, gaps_fast, 1.5);
+					drawWave(26.67, tick + wave * 320 / level.obstacle_speed, gaps_fast, 1.5);
 				}
 				next_obstacle_set_at += 960 / level.obstacle_speed;
+			// Similar to labyrinth, but is longer and has 2 or 3 changes in every direction
+			} else if (type === 'quickrepeat')
+			{
+				var gap = Math.floor(Math.random() * 6);
+				var alt_gap;
+				var total_waves = 0;
+				for (var subset = 0; subset < 4; subset++)
+				{
+					var waves = Math.floor(Math.random() * 2) + 2; // 2 or 3
+					for (var wave = 0; wave < waves; wave++)
+					{
+						drawWave(72, tick + (wave + total_waves) * 140 / level.obstacle_speed, [gap]);
+						if (wave < waves - 1 || subset < 3)
+						{
+							alt_gap = (gap + (subset % 2 === 0 ? 1 : 5)) % 6;
+							drawWave(72,
+									tick + (wave + total_waves) * 140 / level.obstacle_speed + 70 / level.obstacle_speed,
+									[gap, alt_gap]);
+							gap = alt_gap;
+						}
+					}
+					total_waves += waves;
+				}
+				next_obstacle_set_at += (total_waves + 1) * 140 / level.obstacle_speed;
+			// 4 fast obstacles with symmetric exits
+			} else if (type === '4fast')
+			{
+				for (var wave = 0; wave < 6; wave++)
+				{
+					var gap = Math.floor(Math.random() * 6);
+					drawWave(26.67, tick + wave * 240 / level.obstacle_speed, [gap, (gap + 3) % 6], 1.5);
+				}
+				next_obstacle_set_at += 1440 / level.obstacle_speed;
 			}
 		}
-
 		drawPartialSets();
 	};
 
 	var drawPartialSets = function()
 	{
-		while (next_obstacles.length > 0 && next_obstacles[0].tick === tick)
+		while (next_obstacles.length > 0 && next_obstacles[0].tick <= tick)
 		{
 			var obstacle = next_obstacles.shift();
 			drawSingleObstacle(obstacle.interval, obstacle.width, obstacle.speed_multiplier);
