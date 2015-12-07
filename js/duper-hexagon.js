@@ -27,7 +27,7 @@ var duper_hexagon = function ()
 			bgcolor2: 0x144444,
 			obstacle_speed: 6,
 			first_tick: 30,
-			obstacle_types: ['single45', 'single5', 'ifuckedup', 'labyrinth', 'quickeralt', 'multi4'],
+			obstacle_types: ['single5', 'ifuckedup', 'labyrinth', 'quickalt', 'multi4'],
 			song: 'second_source'
 		},
 		{
@@ -40,7 +40,7 @@ var duper_hexagon = function ()
 			bgcolor2: 0x44140C,
 			obstacle_speed: 8,
 			first_tick: 60,
-			obstacle_types: ['single45', 'single5', 'ifuckedup', 'labyrinth', 'quickeralt', 'multi5'],
+			obstacle_types: ['fat5', 'fat5op', 'ifuckedup', 'labyrinth', 'quickeralt', 'multi4'],
 			song: 'reboot_complete'
 		}
 	];
@@ -581,18 +581,23 @@ var duper_hexagon = function ()
 				next_obstacle_set_at += wave_duration * 4 / level.obstacle_speed;
 
 				// 5 obstacles,  with the exit on opposite ends (single5op) or random (single5)
-			} else if (type === 'single5op' || type === 'single5')
+			} else if (type === 'single5op' || type === 'single5' || type === 'fat5' || type === 'fat5op')
 			{
 				var gap = Math.floor(Math.random() * 6);
 				var alt_gap = (gap + 3) % 6;
 				for (var wave = 0; wave < 4; wave++)
 				{
-					if (type === 'single5')
+					if (type === 'single5' || type === 'fat5')
 					{
 						gap = Math.floor(Math.random() * 6);
 						alt_gap = gap;
 					}
-					drawWave(40, tick + wave * 240 / level.obstacle_speed, wave % 2 === 0 ? [gap] : [alt_gap]);
+					var width = 40;
+					if (type === 'fat5' || type === 'fat5op')
+					{
+						width = 80;
+					}
+					drawWave(width, tick + wave * 240 / level.obstacle_speed, wave % 2 === 0 ? [gap] : [alt_gap]);
 				}
 				next_obstacle_set_at += 960 / level.obstacle_speed;
 				// Gaps open and close, 5-4-5-4... (no prefix) or symmetrical 4-2-4-2... (4-prefix)
