@@ -50,12 +50,12 @@ var duper_hexagon = function()
 			center_color: 0x993399,
 			obstacle_color: 0x994499,
 			obstacle_color_light: 0xCC66CC,
-			obstacle_color_dark: 0x9900CC,
+			obstacle_color_dark: 0x990099,
 			bgcolor1: 0x331C33,
 			bgcolor2: 0x221122,
 			obstacle_speed: 4,
 			first_tick: 0,
-			obstacle_types: ['single45', 'single5op', '4labyrinth', '4ifuckedup', '4through'],
+			obstacle_types: ['single45', 'single5op', '4labyrinth', '4ifuckedup', '4through', '5rebound'],
 			song: 'pixel_world'
 		}
 	];
@@ -201,6 +201,9 @@ var duper_hexagon = function()
 		if (obstacle.passes_through)
 		{
 			return level.obstacle_color_light;
+		} else if (obstacle.rebounds)
+		{
+			return level.obstacle_color_dark;
 		}
 		return level.obstacle_color;
 	};
@@ -211,24 +214,18 @@ var duper_hexagon = function()
 		var width            = obstacle.width;
 		var speed_multiplier = obstacle.speed_multiplier;
 		var passes_through   = obstacle.passes_through || false;
-		var group            = passes_through ? obstacles_group_top : obstacles_group;
+		var rebounds         = obstacle.rebounds || false;
+		var group            = passes_through || rebounds ? obstacles_group_top : obstacles_group;
 		var color            = getColor(obstacle);
 
-		var multiply = function(p)
-		{
-			p.x *= speed_multiplier;
-			p.y *= speed_multiplier;
-			return p;
-		};
-
-		var p1 = multiply(interval_points[interval].clone());
-		var p2 = multiply(interval_points[interval + 1].clone());
-		var p3 = multiply(new Phaser.Point(
-			interval_points[interval + 1].x + width * obs_proportion_x[interval + 1],
-			interval_points[interval + 1].y + width * obs_proportion_y[interval + 1]));
-		var p4 = multiply(new Phaser.Point(
-			interval_points[interval].x + width * obs_proportion_x[interval],
-			interval_points[interval].y + width * obs_proportion_y[interval]));
+		var p1 = new Phaser.Point(interval_points[interval].x * speed_multiplier,
+			interval_points[interval].y * speed_multiplier);
+		var p2 = new Phaser.Point(interval_points[interval + 1].x * speed_multiplier,
+			interval_points[interval + 1].y * speed_multiplier);
+		var p3 = new Phaser.Point(p2.x + width * obs_proportion_x[interval + 1],
+			p2.y + width * obs_proportion_y[interval + 1]);
+		var p4 = new Phaser.Point(p1.x + width * obs_proportion_x[interval],
+			p1.y + width * obs_proportion_y[interval]);
 
 		var points   = [p1, p2, p3, p4];
 		var shape    = new Phaser.Polygon(points);
@@ -238,6 +235,7 @@ var duper_hexagon = function()
 		graphics.endFill();
 		group.add(graphics);
 		obstacles.push({
+			width: width,
 			shape: shape,
 			graphics: graphics,
 			interval: interval,
@@ -247,7 +245,8 @@ var duper_hexagon = function()
 			left_danger: false,
 			speed_multiplier: speed_multiplier,
 			passes_through: passes_through,
-			passing_through: false
+			passing_through: false,
+			rebounds: rebounds
 		});
 	};
 
@@ -283,17 +282,25 @@ var duper_hexagon = function()
 		 *
 		 * @param interval The interval which has to be tested
 		 * @param first_zone Whether to test if the polygon may be entering the danger zone (true) or leaving it (false)
-		 * @param mirror Whether the polygon is moving from the inside to the outside (true) or not (false)
+		 * @param in_to_out Whether the polygon is moving from the inside to the outside (true) or not (false)
 		 */
-		var checkZone = function(interval, first_zone, mirror)
+		var checkZone = function(interval, first_zone, in_to_out)
 		{
 			first_zone            = first_zone !== false;
-			mirror                = mirror !== false;
+			in_to_out             = in_to_out === true;
 			var point             = first_zone ? points[0] : points[3];
-			var target_collection = first_zone === mirror ? inner_danger_zone : outer_danger_zone;
-			var threshold         = mirror ? -1 : 1;
-			var check_x           = target_collection[interval].x !== 0 && point.x / target_collection[interval].x < threshold;
-			var check_y           = target_collection[interval].y !== 0 && point.y / target_collection[interval].y < threshold;
+			var target_collection = first_zone === in_to_out ? inner_danger_zone : outer_danger_zone;
+			var check_x           = target_collection[interval].x !== 0;
+			var check_y           = target_collection[interval].y !== 0;
+			if (in_to_out)
+			{
+				check_x = check_x && point.x / target_collection[interval].x > 1;
+				check_y = check_y && point.y / target_collection[interval].y > 1;
+			} else
+			{
+				check_x = check_x && point.x / target_collection[interval].x < 1;
+				check_y = check_y && point.y / target_collection[interval].y < 1;
+			}
 			return check_x || check_y;
 		};
 
@@ -310,24 +317,43 @@ var duper_hexagon = function()
 			var old_x_2  = points[2].x;
 			var old_y_2  = points[2].y;
 			var speed    = level.obstacle_speed * obstacle.speed_multiplier;
-			points[0].x -= speed * obs_proportion_x[interval];
-			points[0].y -= speed * obs_proportion_y[interval];
-			points[1].x -= speed * obs_proportion_x[interval + 1];
-			points[1].y -= speed * obs_proportion_y[interval + 1];
-			points[2].x -= speed * obs_proportion_x[interval + 1];
-			points[2].y -= speed * obs_proportion_y[interval + 1];
-			points[3].x -= speed * obs_proportion_x[interval];
-			points[3].y -= speed * obs_proportion_y[interval];
+			var sign     = obstacle.rebounds && obstacle.past_center ? -1 : 1;
+			points[0].x -= speed * sign * obs_proportion_x[interval];
+			points[0].y -= speed * sign * obs_proportion_y[interval];
+			points[1].x -= speed * sign * obs_proportion_x[interval + 1];
+			points[1].y -= speed * sign * obs_proportion_y[interval + 1];
+			points[2].x -= speed * sign * obs_proportion_x[interval + 1];
+			points[2].y -= speed * sign * obs_proportion_y[interval + 1];
+			points[3].x -= speed * sign * obs_proportion_x[interval];
+			points[3].y -= speed * sign * obs_proportion_y[interval];
+
+			if (obstacle.rebounds && obstacle.past_center && !obstacle.rebounded)
+			{
+				var diff_x = obstacle.width * obs_proportion_x[obstacle.interval];
+				var diff_y = obstacle.width * obs_proportion_y[obstacle.interval];
+				if (Math.abs(points[0].x - points[3].x) < Math.abs(diff_x) ||
+					Math.abs(points[0].y - points[3].y) < Math.abs(diff_y))
+				{
+					points[3].x = points[2].x = points[3].y = points[2].y = 0;
+				} else
+				{
+					obstacle.rebounded = true;
+					points[3].x        = points[0].x - diff_x;
+					points[3].y        = points[0].y - diff_y;
+					diff_x             = obstacle.width * obs_proportion_x[obstacle.interval + 1];
+					diff_y             = obstacle.width * obs_proportion_y[obstacle.interval + 1];
+					points[2].x        = points[1].x - diff_x;
+					points[2].y        = points[1].y - diff_y;
+				}
+			}
 
 			// the shorter side turned from positive to negative or vice versa (got to the center)
-			if (old_x_0 * points[0].x <= 0 && old_y_0 * points[0].y <= 0)
+			if (old_x_0 * points[0].x <= 0 && old_y_0 * points[0].y <= 0 && !obstacle.past_center)
 			{
 				if (obstacle.passes_through === true)
 				{
 					obstacle.passing_through  = true;
-					obstacle.reentered_danger = false;
-					obstacle.releft_danger    = false;
-				} else
+				} else if (!obstacle.rebounded)
 				{
 					points[0].x = points[0].y = points[1].x = points[1].y = 0;
 				}
@@ -339,7 +365,7 @@ var duper_hexagon = function()
 				{
 					to_remove.push(index);
 					graphics.kill();
-				} else
+				} else if (!obstacle.past_center)
 				{
 					obstacle.past_center = true;
 				}
@@ -347,9 +373,9 @@ var duper_hexagon = function()
 			{
 				// Case when an obstacle has passed through the center and begins travelling outside through the
 				// opposite interval
-				if (obstacle.passing_through === true)
+				if (obstacle.passing_through || obstacle.rebounded)
 				{
-					var alt_interval = (interval + 3) % 6;
+					var alt_interval = obstacle.rebounds ? interval : (interval + 3) % 6;
 					if (points[0].x / interval_points[alt_interval].x > 1 ||
 						points[0].y / interval_points[alt_interval].y > 1)
 					{
@@ -357,7 +383,7 @@ var duper_hexagon = function()
 						graphics.kill();
 					} else
 					{
-						if (obstacle.reentered_danger === false && checkZone(interval, true, true))
+						if (!obstacle.reentered_danger && checkZone(alt_interval, true, true))
 						{
 							obstacle.reentered_danger = true;
 							blocked_intervals[alt_interval]++;
@@ -366,14 +392,14 @@ var duper_hexagon = function()
 								onCrash();
 							}
 						}
-						if (obstacle.releft_danger === false && checkZone(interval, false, true))
+						if (!obstacle.releft_danger && checkZone(alt_interval, false, true))
 						{
 							obstacle.releft_danger = true;
 							blocked_intervals[alt_interval]--;
 						}
 					}
 				}
-				if (obstacle.past_center !== true)// Normal case: travelling from the outside towards the center
+				if (obstacle.past_center !== true) // Normal case: travelling from the outside towards the center
 				{
 					if (obstacle.entered_danger === false && checkZone(interval, true, false))
 					{
@@ -809,7 +835,7 @@ var duper_hexagon = function()
 						gaps: gaps_normal
 					});
 					drawWave({
-						width: 26.67,
+						width: 40,
 						start_tick: tick + wave * 320 / level.obstacle_speed,
 						gaps: gaps_fast,
 						speed_multiplier: 1.5
@@ -852,7 +878,7 @@ var duper_hexagon = function()
 				{
 					gap = Math.floor(Math.random() * 6);
 					drawWave({
-						width: 26.67,
+						width: 40,
 						start_tick: tick + wave * 240 / level.obstacle_speed,
 						gaps: [gap, (gap + 3) % 6],
 						speed_multiplier: 1.5
@@ -874,6 +900,20 @@ var duper_hexagon = function()
 					});
 				}
 				next_obstacle_set_at += 1080 / level.obstacle_speed;
+			} else if (type === '5rebound')
+			{
+				// 5 obstacles which rebound
+				for (wave = 0; wave < 3; wave++)
+				{
+					gap     = Math.floor(Math.random() * 6);
+					drawWave({
+						width: 40,
+						start_tick: tick + wave * 480 / level.obstacle_speed,
+						gaps: [gap],
+						rebounds: true
+					});
+				}
+				next_obstacle_set_at += 1440 / level.obstacle_speed;
 			}
 		}
 		drawPartialSets();
