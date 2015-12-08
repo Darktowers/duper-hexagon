@@ -120,14 +120,14 @@ var duper_hexagon = function()
 			proportion_x[interval] = points[interval].x < 0 ? -proportion_x[interval] : proportion_x[interval];
 			proportion_y[interval] = points[interval].y < 0 ? -proportion_y[interval] : proportion_y[interval];
 
-			var danger = CENTER_RADIUS + CENTER_BORDER + PLAYER_RADIUS * 2;
+			var danger       = CENTER_RADIUS + CENTER_BORDER + PLAYER_RADIUS * 2;
 			var leave_danger = CENTER_RADIUS + CENTER_BORDER;
 			if (is_pickup === true)
 			{
 				danger += PICKUP_HEIGHT / 2;
 				leave_danger -= PICKUP_HEIGHT / 2;
 			}
-			danger_zone[interval] = {
+			danger_zone[interval]       = {
 				x: danger * proportion_x[interval],
 				y: danger * proportion_y[interval]
 			};
@@ -172,7 +172,7 @@ var duper_hexagon = function()
 	var backgroundTriangles = function()
 	{
 		var triangles = [];
-		var zero = new Phaser.Point(0, 0);
+		var zero      = new Phaser.Point(0, 0);
 		for (var i = 0; i < 6; i++)
 		{
 			triangles.push(new Phaser.Polygon([interval_points[i], interval_points[i + 1], zero]));

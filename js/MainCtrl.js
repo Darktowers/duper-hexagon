@@ -21,35 +21,46 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 			game.addLoadHandler(function()
 			{
 				$scope.state.loading = false;
+				if ($scope.state.started === true)
+				{
+					setTimer();
+				}
 			});
 
 			game.start(level);
 		}
 	};
 
-	var update_interval;
-
-	game.addStartHandler(function()
+	var timer;
+	var setTimer = function()
 	{
 		time = Date.now();
-		$scope.state.started = true;
-		$scope.state.crashed = false;
-		$scope.state.time = 0;
-		update_interval = $interval(function()
+		if (timer)
+		{
+			$interval.cancel(timer);
+		}
+		timer = $interval(function()
 		{
 			$scope.state.time = ((Date.now() - time) / 1000).toFixed(1);
 		}, 100);
+	};
+
+	game.addStartHandler(function()
+	{
+		$scope.state.started = true;
+		$scope.state.crashed = false;
+		setTimer();
 	});
 
 	game.addCrashHandler(function()
 	{
 		$scope.state.crashed = true;
-		$scope.state.time = Number($scope.state.time);
+		$scope.state.time    = Number($scope.state.time);
 		if ($scope.state.time > $scope.state.best_times[$scope.state.current_level])
 		{
 			$scope.state.best_times[$scope.state.current_level] = $scope.state.time;
 		}
-		$interval.cancel(update_interval);
+		$interval.cancel(timer);
 		$timeout(); // update scope
 	});
 });
