@@ -335,7 +335,7 @@ var duper_hexagon = function()
 			// the longer side turned from positive to negative or vice versa (got to the center)
 			if (old_x_2 * points[2].x <= 0 && old_y_2 * points[2].y <= 0)
 			{
-				if (obstacle.passes_through === false)
+				if (obstacle.passes_through !== true && obstacle.rebounds !== true)
 				{
 					to_remove.push(index);
 					graphics.kill();
@@ -664,19 +664,19 @@ var duper_hexagon = function()
 	// Create and enqueue sets of obstacles
 	var obstacleSets = function()
 	{
-		var drawWave = function(width, start_tick, gaps, speed_multiplier, passes_through)
+		var drawWave = function(wave)
 		{
-			speed_multiplier = speed_multiplier ? speed_multiplier : 1;
 			for (var interval = 0; interval < 6; interval++)
 			{
-				if (gaps.indexOf(interval) === -1)
+				if (wave.gaps.indexOf(interval) === -1)
 				{
 					next_obstacles.push({
-						tick: Math.round(start_tick),
-						width: width,
+						tick: Math.round(wave.start_tick),
+						width: wave.width,
 						interval: interval,
-						speed_multiplier: speed_multiplier,
-						passes_through: passes_through || false
+						speed_multiplier: wave.speed_multiplier || 1,
+						passes_through: wave.passes_through || false,
+						rebounds: wave.rebounds || false
 					});
 				}
 			}
@@ -697,7 +697,11 @@ var duper_hexagon = function()
 					{
 						i2++;
 					}
-					drawWave(40, tick + wave * wave_duration / level.obstacle_speed, [i1, i2]);
+					drawWave({
+						width: 40,
+						start_tick: tick + wave * wave_duration / level.obstacle_speed,
+						gaps: [i1, i2]
+					});
 				}
 				next_obstacle_set_at += wave_duration * 4 / level.obstacle_speed;
 
@@ -718,7 +722,11 @@ var duper_hexagon = function()
 					{
 						width = 80;
 					}
-					drawWave(width, tick + wave * 240 / level.obstacle_speed, wave % 2 === 0 ? [gap] : [alt_gap]);
+					drawWave({
+						width: width,
+						start_tick: tick + wave * 240 / level.obstacle_speed,
+						gaps: wave % 2 === 0 ? [gap] : [alt_gap]
+					});
 				}
 				next_obstacle_set_at += 960 / level.obstacle_speed;
 			} else if (type === 'labyrinth' || type === 'ifuckedup' || type === '4labyrinth' || type === '4ifuckedup')
@@ -741,11 +749,18 @@ var duper_hexagon = function()
 						leave_odd.push((gap + 3) % 6);
 						leave_odd.push((next_gap + 3) % 6);
 					}
-					drawWave(width, tick + wave * 160 / level.obstacle_speed, leave_even);
+					drawWave({
+						width: width,
+						start_tick: tick + wave * 160 / level.obstacle_speed,
+						gaps: leave_even
+					});
 					if (wave < 5)
 					{
-						drawWave(width, tick + wave * 160 / level.obstacle_speed + 80 / level.obstacle_speed,
-							leave_odd);
+						drawWave({
+							width: width,
+							start_tick: tick + (80 + wave * 160) / level.obstacle_speed,
+							gaps: leave_odd
+						});
 					}
 					gap = next_gap;
 				}
@@ -755,8 +770,16 @@ var duper_hexagon = function()
 				// Quick alternating 3 obstacles
 				for (wave = 0; wave < 3; wave++)
 				{
-					drawWave(40, tick + wave * 320 / level.obstacle_speed, [0, 2, 4]);
-					drawWave(40, tick + wave * 320 / level.obstacle_speed + 160 / level.obstacle_speed, [1, 3, 5]);
+					drawWave({
+						width: 40,
+						start_tick: tick + wave * 320 / level.obstacle_speed,
+						gaps: [0, 2, 4]
+					});
+					drawWave({
+						width: 40,
+						start_tick: tick + (160 + wave * 320) / level.obstacle_speed,
+						gaps: [1, 3, 5]
+					});
 				}
 				next_obstacle_set_at += 1080 / level.obstacle_speed;
 				if (type === 'quickeralt')
@@ -780,8 +803,17 @@ var duper_hexagon = function()
 						gaps_normal = [(obs + 1) % 6, (obs + 3) % 6, (obs + 5) % 6];
 						gaps_fast   = [obs, (obs + 2) % 6, (obs + 4) % 6, (obs + 5) % 6];
 					}
-					drawWave(40, tick + wave * 320 / level.obstacle_speed, gaps_normal);
-					drawWave(26.67, tick + wave * 320 / level.obstacle_speed, gaps_fast, 1.5);
+					drawWave({
+						width: 40,
+						start_tick: tick + wave * 320 / level.obstacle_speed,
+						gaps: gaps_normal
+					});
+					drawWave({
+						width: 26.67,
+						start_tick: tick + wave * 320 / level.obstacle_speed,
+						gaps: gaps_fast,
+						speed_multiplier: 1.5
+					});
 				}
 				next_obstacle_set_at += 960 / level.obstacle_speed;
 			} else if (type === 'quickrepeat')
@@ -794,13 +826,19 @@ var duper_hexagon = function()
 					var waves = Math.floor(Math.random() * 2) + 2; // 2 or 3
 					for (wave = 0; wave < waves; wave++)
 					{
-						drawWave(72, tick + (wave + total_waves) * 140 / level.obstacle_speed, [gap]);
+						drawWave({
+							width: 72,
+							start_tick: tick + (wave + total_waves) * 140 / level.obstacle_speed,
+							gaps: [gap]
+						});
 						if (wave < waves - 1 || subset < 3)
 						{
 							alt_gap = (gap + (subset % 2 === 0 ? 1 : 5)) % 6;
-							drawWave(72,
-								tick + (wave + total_waves) * 140 / level.obstacle_speed + 70 / level.obstacle_speed,
-								[gap, alt_gap]);
+							drawWave({
+								width: 72,
+								start_tick: tick + ((wave + total_waves) * 140 + 70) / level.obstacle_speed,
+								gaps: [gap, alt_gap]
+							});
 							gap = alt_gap;
 						}
 					}
@@ -813,7 +851,12 @@ var duper_hexagon = function()
 				for (wave = 0; wave < 6; wave++)
 				{
 					gap = Math.floor(Math.random() * 6);
-					drawWave(26.67, tick + wave * 240 / level.obstacle_speed, [gap, (gap + 3) % 6], 1.5);
+					drawWave({
+						width: 26.67,
+						start_tick: tick + wave * 240 / level.obstacle_speed,
+						gaps: [gap, (gap + 3) % 6],
+						speed_multiplier: 1.5
+					});
 				}
 				next_obstacle_set_at += 1440 / level.obstacle_speed;
 			} else if (type === '4through')
@@ -823,7 +866,12 @@ var duper_hexagon = function()
 				{
 					gap     = Math.floor(Math.random() * 6);
 					alt_gap = Math.random() > 0.25 ? (gap + 2) % 6 : (gap + 3) % 6;
-					drawWave(40, tick + wave * 360 / level.obstacle_speed, [gap, alt_gap], 1, true);
+					drawWave({
+						width: 40,
+						start_tick: tick + wave * 360 / level.obstacle_speed,
+						gaps: [gap, alt_gap],
+						passes_through: true
+					});
 				}
 				next_obstacle_set_at += 1080 / level.obstacle_speed;
 			}
