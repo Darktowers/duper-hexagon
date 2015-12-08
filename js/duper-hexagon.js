@@ -50,13 +50,45 @@ var duper_hexagon = function()
 			center_color: 0x993399,
 			obstacle_color: 0x994499,
 			obstacle_color_light: 0xCC66CC,
-			obstacle_color_dark: 0x990099,
+			obstacle_color_dark: 0x731173,
 			bgcolor1: 0x331C33,
 			bgcolor2: 0x221122,
 			obstacle_speed: 4,
 			first_tick: 0,
-			obstacle_types: ['single45', 'single5op', '4labyrinth', '4ifuckedup', '4through', '5rebound'],
+			obstacle_types: ['4through', '5rebound', '4ifuckeduprebound', '4labyrinthrebound', 'quickaltrebound'],
 			song: 'pixel_world'
+		},
+		{
+			rotation_speed: 0.015,
+			player_speed: 3 * Math.PI / 80,
+			player_color: 0x3399AA,
+			center_color: 0x00AABB,
+			obstacle_color: 0x3399AA,
+			bgcolor1: 0x1F5555,
+			bgcolor2: 0x103333,
+			obstacle_color_light: 0x55DDFF,
+			obstacle_color_dark: 0x206677,
+			obstacle_speed: 6,
+			first_tick: 30,
+			obstacle_types: ['4through', '5rebound', 'ifuckeduprebound', 'quickrepeatrebound', 'multi4rebound',
+				'quickaltthrough'],
+			song: 'second_source'
+		},
+		{
+			rotation_speed: 0.02,
+			player_speed: Math.PI / 20,
+			player_color: 0xCC5522,
+			center_color: 0xCC6630,
+			obstacle_color: 0xCC5522,
+			bgcolor1: 0x50170C,
+			bgcolor2: 0x331009,
+			obstacle_color_light: 0xFF8855,
+			obstacle_color_dark: 0x99401C,
+			obstacle_speed: 8,
+			first_tick: 60,
+			obstacle_types: ['fat5oprebound', 'ifuckedupthrough', 'labyrinththrough',
+				'quickaltthrough', 'multi4through', '4fastthrough'],
+			song: 'reboot_complete'
 		}
 	];
 
@@ -352,14 +384,15 @@ var duper_hexagon = function()
 			{
 				if (obstacle.passes_through === true)
 				{
-					obstacle.passing_through  = true;
+					obstacle.passing_through = true;
 				} else if (!obstacle.rebounded)
 				{
 					points[0].x = points[0].y = points[1].x = points[1].y = 0;
 				}
 			}
 			// the longer side turned from positive to negative or vice versa (got to the center)
-			if (old_x_2 * points[2].x <= 0 && old_y_2 * points[2].y <= 0)
+			var longer_switched = old_x_2 * points[2].x <= 0 && old_y_2 * points[2].y <= 0;
+			if (longer_switched)
 			{
 				if (obstacle.passes_through !== true && obstacle.rebounds !== true)
 				{
@@ -369,7 +402,9 @@ var duper_hexagon = function()
 				{
 					obstacle.past_center = true;
 				}
-			} else
+			}
+
+			if (!longer_switched || obstacle.rebounds)
 			{
 				// Case when an obstacle has passed through the center and begins travelling outside through the
 				// opposite interval
@@ -711,7 +746,7 @@ var duper_hexagon = function()
 		if (tick >= next_obstacle_set_at)
 		{
 			var type = obstacle_types[Math.floor(Math.random() * obstacle_types.length)];
-			var gap, alt_gap, wave, width;
+			var gap, alt_gap, wave, width, tick_multiplier, should_rebound, next_gap, leave_even, leave_odd;
 			if (type === 'single45') // 4 or 5 obstacles
 			{
 				var wave_duration = 240;
@@ -731,45 +766,61 @@ var duper_hexagon = function()
 				}
 				next_obstacle_set_at += wave_duration * 4 / level.obstacle_speed;
 
-			} else if (type === 'single5op' || type === 'single5' || type === 'fat5' || type === 'fat5op')
+			} else if (type === 'single5op' || type === 'single5' || type === 'fat5' || type === 'fat5op' ||
+				type === '5rebound' || type === 'fat5rebound' || type === 'fat5oprebound')
 			{
-				// 5 obstacles,  with the exit on opposite ends (single5op) or random (single5)
-				gap     = Math.floor(Math.random() * 6);
-				alt_gap = (gap + 3) % 6;
+				// 4 obstacles, with the exit on opposite ends (single5op) or random (single5)
+				gap             = Math.floor(Math.random() * 6);
+				alt_gap         = (gap + 3) % 6;
+				tick_multiplier = type === '5rebound' ? 2 : 1;
 				for (wave = 0; wave < 4; wave++)
 				{
-					if (type === 'single5' || type === 'fat5')
+					if (type === 'single5' || type === 'fat5' || type === 'fat5rebound')
 					{
 						gap     = Math.floor(Math.random() * 6);
 						alt_gap = gap;
 					}
 					width = 40;
-					if (type === 'fat5' || type === 'fat5op')
+					if (type === 'fat5' || type === 'fat5op' || type === 'fat5rebound' || type === 'fat5oprebound')
 					{
 						width = 80;
 					}
+					should_rebound = type === '5rebound' ||
+						wave === 3 && (type === 'fat5rebound' || type === 'fat5oprebound');
 					drawWave({
 						width: width,
-						start_tick: tick + wave * 240 / level.obstacle_speed,
-						gaps: wave % 2 === 0 ? [gap] : [alt_gap]
+						start_tick: tick + tick_multiplier * wave * 240 / level.obstacle_speed,
+						gaps: wave % 2 === 0 ? [gap] : [alt_gap],
+						rebounds: should_rebound
 					});
 				}
-				next_obstacle_set_at += 960 / level.obstacle_speed;
-			} else if (type === 'labyrinth' || type === 'ifuckedup' || type === '4labyrinth' || type === '4ifuckedup')
+				next_obstacle_set_at += tick_multiplier * 960 / level.obstacle_speed;
+				if (type === 'fat5rebound' || type === 'fat5oprebound')
+				{
+					next_obstacle_set_at += 240 / level.obstacle_speed;
+				}
+			} else if (type === 'labyrinth' || type === 'ifuckedup' || type === '4labyrinth' || type === '4ifuckedup'
+				|| type === '4ifuckeduprebound' || type === 'ifuckeduprebound' || type === '4labyrinthrebound'
+				|| type === 'labyrinthrebound')
 			{
+				should_rebound  = type === 'ifuckeduprebound' || type === '4ifuckeduprebound' ||
+					type === 'labyrinthrebound' || type === '4labyrinthrebound';
+				var i_fucked_up = type === 'ifuckedup' || type === '4ifuckedup' || type === 'ifuckeduprebound' ||
+					type === '4ifuckeduprebound'
 				// Gaps open and close, 5-4-5-4... (no prefix) or symmetrical 4-2-4-2... (4-prefix)
 				gap   = Math.floor(Math.random() * 6);
 				width = 84;
-				if (type === 'ifuckedup' || type === '4ifuckedup')
+				if (i_fucked_up)
 				{
 					width = 40;
 				}
 				for (wave = 0; wave < 6; wave++)
 				{
-					var next_gap   = (gap + (Math.random() > 0.5 ? 1 : -1) + 6) % 6;
-					var leave_even = [gap];
-					var leave_odd  = [gap, next_gap];
-					if (type === '4labyrinth' || type === '4ifuckedup')
+					next_gap   = (gap + (Math.random() > 0.5 ? 1 : -1) + 6) % 6;
+					leave_even = [gap];
+					leave_odd  = [gap, next_gap];
+					if (type === '4labyrinth' || type === '4ifuckedup' || type === '4labyrinthrebound' ||
+						type === '4ifuckeduprebound')
 					{
 						leave_even.push((gap + 3) % 6);
 						leave_odd.push((gap + 3) % 6);
@@ -778,7 +829,8 @@ var duper_hexagon = function()
 					drawWave({
 						width: width,
 						start_tick: tick + wave * 160 / level.obstacle_speed,
-						gaps: leave_even
+						gaps: leave_even,
+						rebounds: should_rebound && wave === 5
 					});
 					if (wave < 5)
 					{
@@ -791,7 +843,58 @@ var duper_hexagon = function()
 					gap = next_gap;
 				}
 				next_obstacle_set_at += 1120 / level.obstacle_speed;
-			} else if (type === 'quickalt' || type === 'quickeralt')
+				if (should_rebound)
+				{
+					if (i_fucked_up)
+					{
+						next_obstacle_set_at += 40;
+					} else
+					{
+						next_obstacle_set_at += 80;
+					}
+				}
+			} else if (type === 'labyrinththrough' || type === 'ifuckedupthrough')
+			{
+				// Gaps open and close, 5-4-5-4... but at the end it has two exits so that the pass-through can be
+				// dodged
+				gap   = Math.floor(Math.random() * 6);
+				width = type === 'labyrinththrough' ? 84 : 40;
+				for (wave = 0; wave < 6; wave++)
+				{
+					leave_even = [gap];
+					next_gap   = (gap + (Math.random() > 0.5 ? 1 : -1) + 6) % 6;
+					leave_odd  = [gap, next_gap];
+					if (wave === 4)
+					{
+						leave_odd = [gap, (gap + 1) % 6, (gap + 5) % 6];
+					} else if (wave === 5) {
+						leave_even = [(gap + 1) % 6, (gap + 5) % 6];
+					}
+					drawWave({
+						width: width,
+						start_tick: tick + wave * 160 / level.obstacle_speed,
+						gaps: leave_even,
+						passes_through: wave === 5
+					});
+					if (wave < 5)
+					{
+						drawWave({
+							width: width,
+							start_tick: tick + (80 + wave * 160) / level.obstacle_speed,
+							gaps: leave_odd
+						});
+					}
+					if (wave <= 4)
+					{
+						gap = next_gap;
+					}
+				}
+				next_obstacle_set_at += 1160 / level.obstacle_speed;
+				if (type === 'labyrinththrough')
+				{
+					next_obstacle_set_at += 40;
+				}
+			} else if (type === 'quickalt' || type === 'quickeralt' || type === 'quickaltrebound' || type === 'quickaltthrough')
 			{
 				// Quick alternating 3 obstacles
 				for (wave = 0; wave < 3; wave++)
@@ -804,45 +907,58 @@ var duper_hexagon = function()
 					drawWave({
 						width: 40,
 						start_tick: tick + (160 + wave * 320) / level.obstacle_speed,
-						gaps: [1, 3, 5]
+						gaps: [1, 3, 5],
+						rebounds: wave === 2 && type === 'quickaltrebound',
+						passes_through: wave === 2 && type === 'quickaltthrough'
 					});
 				}
 				next_obstacle_set_at += 1080 / level.obstacle_speed;
 				if (type === 'quickeralt')
 				{
 					next_obstacle_set_at -= 120 / level.obstacle_speed;
+				} else if (type === 'quickaltrebound' || type === 'quickaltthrough')
+				{
+					next_obstacle_set_at += 120 / level.obstacle_speed;
 				}
-			} else if (type === 'multi4' || type === 'multi5')
+			} else if (type === 'multi4' || type === 'multi5' || type === 'multi4rebound' || type === 'multi4through')
 			{
 				for (wave = 0; wave < 3; wave++)
 				{
 					var obs = Math.floor(Math.random() * 6);
 					var gaps_normal;
 					var gaps_fast;
-					if (type === 'multi4')
+					if (type === 'multi5')
+					{
+						gaps_normal = [(obs + 1) % 6, (obs + 3) % 6, (obs + 5) % 6];
+						gaps_fast   = [obs, (obs + 2) % 6, (obs + 4) % 6, (obs + 5) % 6];
+					} else
 					{
 						var flip    = Math.random() < 0.5;
 						gaps_normal = [(obs + 1) % 6, (obs + 2) % 6, (obs + 4) % 6, (obs + 5) % 6];
 						gaps_fast   = [obs, (obs + (flip ? 1 : 2)) % 6, (obs + 3) % 6, (obs + (flip ? 4 : 5)) % 6];
-					} else
-					{
-						gaps_normal = [(obs + 1) % 6, (obs + 3) % 6, (obs + 5) % 6];
-						gaps_fast   = [obs, (obs + 2) % 6, (obs + 4) % 6, (obs + 5) % 6];
 					}
 					drawWave({
 						width: 40,
 						start_tick: tick + wave * 320 / level.obstacle_speed,
-						gaps: gaps_normal
+						gaps: gaps_normal,
+						rebounds: wave === 2 && type === 'multi4rebound',
+						passes_through: wave === 2 && type === 'multi4through'
 					});
 					drawWave({
 						width: 40,
 						start_tick: tick + wave * 320 / level.obstacle_speed,
 						gaps: gaps_fast,
-						speed_multiplier: 1.5
+						speed_multiplier: 1.5,
+						rebounds: wave === 2 && type === 'multi4rebound',
+						passes_through: wave === 2 && type === 'multi4through'
 					});
 				}
 				next_obstacle_set_at += 960 / level.obstacle_speed;
-			} else if (type === 'quickrepeat')
+				if (type === 'multi4rebound' || type === 'multi4through')
+				{
+					next_obstacle_set_at += 120 / level.obstacle_speed;
+				}
+			} else if (type === 'quickrepeat' || type === 'quickrepeatrebound')
 			{
 				// Similar to labyrinth, but is longer and has 2 or 3 changes in every direction
 				gap             = Math.floor(Math.random() * 6);
@@ -855,7 +971,8 @@ var duper_hexagon = function()
 						drawWave({
 							width: 72,
 							start_tick: tick + (wave + total_waves) * 140 / level.obstacle_speed,
-							gaps: [gap]
+							gaps: [gap],
+							rebounds: wave === waves - 1 && subset === 3 && type === 'quickrepeatrebound'
 						});
 						if (wave < waves - 1 || subset < 3)
 						{
@@ -863,7 +980,7 @@ var duper_hexagon = function()
 							drawWave({
 								width: 72,
 								start_tick: tick + ((wave + total_waves) * 140 + 70) / level.obstacle_speed,
-								gaps: [gap, alt_gap]
+								gaps: [gap, alt_gap],
 							});
 							gap = alt_gap;
 						}
@@ -871,20 +988,27 @@ var duper_hexagon = function()
 					total_waves += waves;
 				}
 				next_obstacle_set_at += (total_waves + 1) * 140 / level.obstacle_speed;
-			} else if (type === '4fast')
+				if (type === 'quickrepeatrebound')
+				{
+					next_obstacle_set_at += 180 / level.obstacle_speed;
+				}
+			} else if (type === '4fast' || type === '4fastrebound' || type === '4fastthrough')
 			{
+				tick_multiplier = type === '4fastrebound' || type === '4fastthrough' ? 1.5 : 1;
 				// 4 fast obstacles with symmetric exits
 				for (wave = 0; wave < 6; wave++)
 				{
 					gap = Math.floor(Math.random() * 6);
 					drawWave({
 						width: 40,
-						start_tick: tick + wave * 240 / level.obstacle_speed,
+						start_tick: tick + tick_multiplier * wave * 240 / level.obstacle_speed,
 						gaps: [gap, (gap + 3) % 6],
-						speed_multiplier: 1.5
+						speed_multiplier: 1.5,
+						rebounds: type === '4fastrebound',
+						passes_through: type === '4fastthrough'
 					});
 				}
-				next_obstacle_set_at += 1440 / level.obstacle_speed;
+				next_obstacle_set_at += tick_multiplier * 1440 / level.obstacle_speed;
 			} else if (type === '4through')
 			{
 				// 4 obstacles which pass through the center
@@ -900,20 +1024,6 @@ var duper_hexagon = function()
 					});
 				}
 				next_obstacle_set_at += 1080 / level.obstacle_speed;
-			} else if (type === '5rebound')
-			{
-				// 5 obstacles which rebound
-				for (wave = 0; wave < 3; wave++)
-				{
-					gap     = Math.floor(Math.random() * 6);
-					drawWave({
-						width: 40,
-						start_tick: tick + wave * 480 / level.obstacle_speed,
-						gaps: [gap],
-						rebounds: true
-					});
-				}
-				next_obstacle_set_at += 1440 / level.obstacle_speed;
 			}
 		}
 		drawPartialSets();
