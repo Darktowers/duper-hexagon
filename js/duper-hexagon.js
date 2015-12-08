@@ -1,4 +1,4 @@
-var duper_hexagon = function ()
+var duper_hexagon = function()
 {
 	"use strict";
 
@@ -60,26 +60,26 @@ var duper_hexagon = function ()
 		}
 	];
 
-	var SIZE_X = 800;
-	var SIZE_Y = 600;
+	var SIZE_X        = 800;
+	var SIZE_Y        = 600;
 	var PLAYER_RADIUS = 10;
 	var CENTER_RADIUS = 40;
 	var CENTER_BORDER = 20;
 	var NUM_INTERVALS = 6;
 	var PICKUP_HEIGHT = 60;
 
-	var sqrt3 = Math.sqrt(3);
+	var sqrt3           = Math.sqrt(3);
 	var player_interval;
 	var player_position = 5 * Math.PI / 6;
 
 	var intervals;
 	var blocked_intervals = [0, 0, 0, 0, 0, 0];
-	var playing = false;
-	var crashed = false;
+	var playing           = false;
+	var crashed           = false;
 
-	var setUpIntervals = function ()
+	var setUpIntervals = function()
 	{
-		intervals = [0];
+		intervals    = [0];
 		var interval = 2 * Math.PI / NUM_INTERVALS;
 		for (var i = 1; i <= NUM_INTERVALS; i++)
 		{
@@ -97,14 +97,14 @@ var duper_hexagon = function ()
 	// Points which, when connected to (0,0) through a segment, become a set of medians for the above triangles
 	var median_interval_points = [];
 
-	var calcIntervals = function ()
+	var calcIntervals = function()
 	{
 		var calcIntervalProportions = function(interval, is_pickup)
 		{
-			var proportion_x      = is_pickup === true ? pickup_proportion_x      : obs_proportion_x;
-			var proportion_y      = is_pickup === true ? pickup_proportion_y      : obs_proportion_y;
-			var points            = is_pickup === true ? median_interval_points   : interval_points;
-			var danger_zone       = is_pickup === true ? pickup_danger_zone       : outer_danger_zone;
+			var proportion_x      = is_pickup === true ? pickup_proportion_x : obs_proportion_x;
+			var proportion_y      = is_pickup === true ? pickup_proportion_y : obs_proportion_y;
+			var points            = is_pickup === true ? median_interval_points : interval_points;
+			var danger_zone       = is_pickup === true ? pickup_danger_zone : outer_danger_zone;
 			var leave_danger_zone = is_pickup === true ? pickup_leave_danger_zone : inner_danger_zone;
 			if (points[interval].x !== 0)
 			{
@@ -129,10 +129,12 @@ var duper_hexagon = function ()
 			}
 			danger_zone[interval] = {
 				x: danger * proportion_x[interval],
-				y: danger * proportion_y[interval]};
-			leave_danger_zone[interval] =  {
+				y: danger * proportion_y[interval]
+			};
+			leave_danger_zone[interval] = {
 				x: leave_danger * proportion_x[interval],
-				y: leave_danger * proportion_y[interval]};
+				y: leave_danger * proportion_y[interval]
+			};
 		};
 
 		// Interval points must be big enough to reach from the center to any of the four corners
@@ -147,12 +149,12 @@ var duper_hexagon = function ()
 			interval_points.push(new Phaser.Point(h, -l / 2));
 			interval_points.push(new Phaser.Point(h, l / 2));
 			interval_points.push(interval_points[0]);
-			median_interval_points.push(new Phaser.Point(-h/2, 3 * l / 4));
+			median_interval_points.push(new Phaser.Point(-h / 2, 3 * l / 4));
 			median_interval_points.push(new Phaser.Point(-h, 0));
-			median_interval_points.push(new Phaser.Point(-h/2, - 3 * l / 4));
-			median_interval_points.push(new Phaser.Point(h/2, - 3 * l / 4));
+			median_interval_points.push(new Phaser.Point(-h / 2, -3 * l / 4));
+			median_interval_points.push(new Phaser.Point(h / 2, -3 * l / 4));
 			median_interval_points.push(new Phaser.Point(h, 0));
-			median_interval_points.push(new Phaser.Point(h/2, 3 * l / 4));
+			median_interval_points.push(new Phaser.Point(h / 2, 3 * l / 4));
 			median_interval_points.push(median_interval_points[0]);
 		}
 
@@ -167,7 +169,7 @@ var duper_hexagon = function ()
 		pickup_proportion_y[6] = pickup_proportion_y[0];
 	};
 
-	var backgroundTriangles = function ()
+	var backgroundTriangles = function()
 	{
 		var triangles = [];
 		var zero = new Phaser.Point(0, 0);
@@ -180,18 +182,18 @@ var duper_hexagon = function ()
 
 	// Proportions for calculating point locations. If a point (c,d) is 40 units away from point (a,b) on top of an
 	// interval line, then (c,d) = (a + 40 * proportion_x, b + 40 * proportion_y).
-	var obs_proportion_x = [];
-	var obs_proportion_y = [];
+	var obs_proportion_x    = [];
+	var obs_proportion_y    = [];
 	var pickup_proportion_x = [];
 	var pickup_proportion_y = [];
 	// Lists of obstacles and pickups
 	var obstacles = [];
-	var pickups = [];
+	var pickups   = [];
 	// x coordinates for each straight when we know that an obstacle is close enough to the player to actually touch
 	// him/her
-	var outer_danger_zone = [];
-	var inner_danger_zone = [];
-	var pickup_danger_zone = [];
+	var outer_danger_zone        = [];
+	var inner_danger_zone        = [];
+	var pickup_danger_zone       = [];
 	var pickup_leave_danger_zone = [];
 
 	var getColor = function(obstacle)
@@ -203,7 +205,7 @@ var duper_hexagon = function ()
 		return level.obstacle_color;
 	};
 
-	var drawSingleObstacle = function (obstacle)
+	var drawSingleObstacle = function(obstacle)
 	{
 		var interval         = obstacle.interval;
 		var width            = obstacle.width;
@@ -222,39 +224,48 @@ var duper_hexagon = function ()
 		var p1 = multiply(interval_points[interval].clone());
 		var p2 = multiply(interval_points[interval + 1].clone());
 		var p3 = multiply(new Phaser.Point(
-				interval_points[interval + 1].x + width * obs_proportion_x[interval + 1],
+			interval_points[interval + 1].x + width * obs_proportion_x[interval + 1],
 			interval_points[interval + 1].y + width * obs_proportion_y[interval + 1]));
 		var p4 = multiply(new Phaser.Point(
-				interval_points[interval].x + width * obs_proportion_x[interval],
+			interval_points[interval].x + width * obs_proportion_x[interval],
 			interval_points[interval].y + width * obs_proportion_y[interval]));
 
-		var points = [p1, p2, p3, p4];
-		var shape = new Phaser.Polygon(points);
+		var points   = [p1, p2, p3, p4];
+		var shape    = new Phaser.Polygon(points);
 		var graphics = new Phaser.Graphics(game, 0, 0);
 		graphics.beginFill(color);
 		graphics.drawPolygon(shape);
 		graphics.endFill();
 		group.add(graphics);
-		obstacles.push({shape: shape, graphics: graphics, interval: interval, speed: level.obstacle_speed, points: points,
-			entered_danger: false, left_danger: false, speed_multiplier: speed_multiplier, passes_through: passes_through,
-			passing_through: false});
+		obstacles.push({
+			shape: shape,
+			graphics: graphics,
+			interval: interval,
+			speed: level.obstacle_speed,
+			points: points,
+			entered_danger: false,
+			left_danger: false,
+			speed_multiplier: speed_multiplier,
+			passes_through: passes_through,
+			passing_through: false
+		});
 	};
 
 	var drawPickup = function(interval)
 	{
-		var pickup = game.add.sprite(
-				median_interval_points[interval].x,
-				median_interval_points[interval].y,
-				'pickup');
+		var pickup      = game.add.sprite(
+			median_interval_points[interval].x,
+			median_interval_points[interval].y,
+			'pickup');
 		pickup.anchor.x = 0.5;
 		pickup.anchor.y = 0.5;
 		obstacles_group.add(pickup);
 		pickup.interval = interval;
-		pickup.rotation = - 5 * Math.PI/6 + Math.PI * interval / 3;
+		pickup.rotation = -5 * Math.PI / 6 + Math.PI * interval / 3;
 		pickups.push(pickup);
 	};
 
-	var updateObstaclesAndPickups = function ()
+	var updateObstaclesAndPickups = function()
 	{
 		var points;
 		/**
@@ -276,29 +287,29 @@ var duper_hexagon = function ()
 		 */
 		var checkZone = function(interval, first_zone, mirror)
 		{
-			first_zone = first_zone !== false;
-			mirror = mirror !== false;
-			var point = first_zone ? points[0] : points[3];
+			first_zone            = first_zone !== false;
+			mirror                = mirror !== false;
+			var point             = first_zone ? points[0] : points[3];
 			var target_collection = first_zone === mirror ? inner_danger_zone : outer_danger_zone;
-			var threshold = mirror ? -1 : 1;
-			var check_x = target_collection[interval].x !== 0 && point.x / target_collection[interval].x < threshold;
-			var check_y = target_collection[interval].y !== 0 && point.y / target_collection[interval].y < threshold;
+			var threshold         = mirror ? -1 : 1;
+			var check_x           = target_collection[interval].x !== 0 && point.x / target_collection[interval].x < threshold;
+			var check_y           = target_collection[interval].y !== 0 && point.y / target_collection[interval].y < threshold;
 			return check_x || check_y;
 		};
 
 		var to_remove = [];
 		var interval;
 
-		obstacles.map(function (obstacle, index)
+		obstacles.map(function(obstacle, index)
 		{
-			points = obstacle.points;
+			points       = obstacle.points;
 			var graphics = obstacle.graphics;
-			interval = obstacle.interval;
-			var old_x_0 = points[0].x;
-			var old_y_0 = points[0].y;
-			var old_x_2 = points[2].x;
-			var old_y_2 = points[2].y;
-			var speed = level.obstacle_speed * obstacle.speed_multiplier;
+			interval     = obstacle.interval;
+			var old_x_0  = points[0].x;
+			var old_y_0  = points[0].y;
+			var old_x_2  = points[2].x;
+			var old_y_2  = points[2].y;
+			var speed    = level.obstacle_speed * obstacle.speed_multiplier;
 			points[0].x -= speed * obs_proportion_x[interval];
 			points[0].y -= speed * obs_proportion_y[interval];
 			points[1].x -= speed * obs_proportion_x[interval + 1];
@@ -340,7 +351,7 @@ var duper_hexagon = function ()
 				{
 					var alt_interval = (interval + 3) % 6;
 					if (points[0].x / interval_points[alt_interval].x > 1 ||
-							points[0].y / interval_points[alt_interval].y > 1)
+						points[0].y / interval_points[alt_interval].y > 1)
 					{
 						to_remove.push(index);
 						graphics.kill();
@@ -372,7 +383,8 @@ var duper_hexagon = function ()
 						{
 							onCrash();
 						}
-					} if (obstacle.entered_danger === true && obstacle.left_danger === false &&
+					}
+					if (obstacle.entered_danger === true && obstacle.left_danger === false &&
 						checkZone(interval, false, false))
 					{
 						obstacle.left_danger = true;
@@ -395,7 +407,7 @@ var duper_hexagon = function ()
 		to_remove = [];
 		pickups.map(function(pickup, index)
 		{
-			interval = pickup.interval;
+			interval  = pickup.interval;
 			var old_x = pickup.x;
 			var old_y = pickup.y;
 			pickup.x -= level.pickup_speed * pickup_proportion_x[interval];
@@ -409,11 +421,11 @@ var duper_hexagon = function ()
 			{
 				// Has entered the collision zone with the player
 				if (pickup.x / pickup_danger_zone[interval].x < 1 ||
-						pickup.y / pickup_danger_zone[interval].y < 1)
+					pickup.y / pickup_danger_zone[interval].y < 1)
 				{
 					// Hasn't left the collision zone with the player
-					if (pickup_leave_danger_zone[interval].x / pickup.x  < 1 ||
-							pickup_leave_danger_zone[interval].y / pickup.y < 1)
+					if (pickup_leave_danger_zone[interval].x / pickup.x < 1 ||
+						pickup_leave_danger_zone[interval].y / pickup.y < 1)
 					{
 						if (interval === player_interval)
 						{
@@ -437,17 +449,17 @@ var duper_hexagon = function ()
 		console.log('got pickup', interval);
 	};
 
-	var updatePlayerPos = function ()
+	var updatePlayerPos = function()
 	{
 		player_graphics.rotation = player_position;
 	};
 
-	var regularPolygonPoints = function (x, y, sides, radius, angle)
+	var regularPolygonPoints = function(x, y, sides, radius, angle)
 	{
 		var x_points = [];
 		var y_points = [];
-		angle = angle === undefined ? 0 : angle;
-		var height = sqrt3 * radius / 2;
+		angle        = angle === undefined ? 0 : angle;
+		var height   = sqrt3 * radius / 2;
 		// Avoid expensive sine and cosine calculations for the center hexagon
 		if (sides === 6 && angle === 0)
 		{
@@ -469,7 +481,7 @@ var duper_hexagon = function ()
 		};
 	};
 
-	var buildRegularPolygon = function (x, y, sides, radius, angle)
+	var buildRegularPolygon = function(x, y, sides, radius, angle)
 	{
 		var coords = regularPolygonPoints(x, y, sides, radius, angle);
 		var points = [];
@@ -488,7 +500,7 @@ var duper_hexagon = function ()
 			if (player_position < intervals[i])
 			{
 				player_interval = i - 1;
-				found = true;
+				found           = true;
 			}
 		}
 		if (!found)
@@ -497,7 +509,7 @@ var duper_hexagon = function ()
 		}
 	};
 
-	var increasePlayerPos = function (offset)
+	var increasePlayerPos = function(offset)
 	{
 		var old_pos = player_position;
 		player_position += offset;
@@ -550,20 +562,20 @@ var duper_hexagon = function ()
 			return;
 		}
 
-		level = levels[level_index] ? levels[level_index] : levels[curr_level];
+		level              = levels[level_index] ? levels[level_index] : levels[curr_level];
 		level.pickup_speed = sqrt3 * level.obstacle_speed / 2;
-		curr_level = level_index ? level_index : curr_level;
-		music_loaded = false;
+		curr_level         = level_index ? level_index : curr_level;
+		music_loaded       = false;
 
-		song = game.add.audio(level.song);
+		song      = game.add.audio(level.song);
 		song.loop = true;
 
-		crashed = false;
-		playing = true;
-		tick = 0;
+		crashed              = false;
+		playing              = true;
+		tick                 = 0;
 		next_obstacle_set_at = level.first_tick;
-		next_obstacles = [];
-		obstacle_types = level.obstacle_types;
+		next_obstacles       = [];
+		obstacle_types       = level.obstacle_types;
 
 		// Clean up a previous run
 		if (player_graphics)
@@ -577,8 +589,8 @@ var duper_hexagon = function ()
 			{
 				obstacle.graphics.clear();
 			});
-			pickups = [];
-			obstacles = [];
+			pickups           = [];
+			obstacles         = [];
 			blocked_intervals = [0, 0, 0, 0, 0, 0];
 		}
 
@@ -603,7 +615,7 @@ var duper_hexagon = function ()
 
 		var bg_polygons = backgroundTriangles();
 
-		var background_graphics_odd = new Phaser.Graphics(game, 0, 0);
+		var background_graphics_odd  = new Phaser.Graphics(game, 0, 0);
 		var background_graphics_even = new Phaser.Graphics(game, 0, 0);
 		background_graphics_odd.beginFill(level.bgcolor1);
 		background_graphics_even.beginFill(level.bgcolor2);
@@ -618,7 +630,7 @@ var duper_hexagon = function ()
 		background_group.add(background_graphics_odd);
 
 		var center_hexagon_graphics = new Phaser.Graphics(game, 0, 0);
-		var center_hexagon_poly = buildRegularPolygon(0, 0, NUM_INTERVALS, CENTER_RADIUS);
+		var center_hexagon_poly     = buildRegularPolygon(0, 0, NUM_INTERVALS, CENTER_RADIUS);
 		center_hexagon_graphics.clear();
 		center_hexagon_graphics.beginFill(level.center_color);
 		center_hexagon_graphics.drawPolygon(center_hexagon_poly);
@@ -645,14 +657,14 @@ var duper_hexagon = function ()
 	};
 
 	var obstacle_types;
-	var tick = 0;
+	var tick                 = 0;
 	var next_obstacle_set_at = 0;
-	var next_obstacles = [];
+	var next_obstacles       = [];
 
 	// Create and enqueue sets of obstacles
 	var obstacleSets = function()
 	{
-		var drawWave = function (width, start_tick, gaps, speed_multiplier, passes_through)
+		var drawWave = function(width, start_tick, gaps, speed_multiplier, passes_through)
 		{
 			speed_multiplier = speed_multiplier ? speed_multiplier : 1;
 			for (var interval = 0; interval < 6; interval++)
@@ -689,16 +701,16 @@ var duper_hexagon = function ()
 				}
 				next_obstacle_set_at += wave_duration * 4 / level.obstacle_speed;
 
-				// 5 obstacles,  with the exit on opposite ends (single5op) or random (single5)
 			} else if (type === 'single5op' || type === 'single5' || type === 'fat5' || type === 'fat5op')
 			{
-				gap = Math.floor(Math.random() * 6);
+				// 5 obstacles,  with the exit on opposite ends (single5op) or random (single5)
+				gap     = Math.floor(Math.random() * 6);
 				alt_gap = (gap + 3) % 6;
 				for (wave = 0; wave < 4; wave++)
 				{
 					if (type === 'single5' || type === 'fat5')
 					{
-						gap = Math.floor(Math.random() * 6);
+						gap     = Math.floor(Math.random() * 6);
 						alt_gap = gap;
 					}
 					width = 40;
@@ -709,10 +721,10 @@ var duper_hexagon = function ()
 					drawWave(width, tick + wave * 240 / level.obstacle_speed, wave % 2 === 0 ? [gap] : [alt_gap]);
 				}
 				next_obstacle_set_at += 960 / level.obstacle_speed;
-				// Gaps open and close, 5-4-5-4... (no prefix) or symmetrical 4-2-4-2... (4-prefix)
 			} else if (type === 'labyrinth' || type === 'ifuckedup' || type === '4labyrinth' || type === '4ifuckedup')
 			{
-				gap = Math.floor(Math.random() * 6);
+				// Gaps open and close, 5-4-5-4... (no prefix) or symmetrical 4-2-4-2... (4-prefix)
+				gap   = Math.floor(Math.random() * 6);
 				width = 84;
 				if (type === 'ifuckedup' || type === '4ifuckedup')
 				{
@@ -720,9 +732,9 @@ var duper_hexagon = function ()
 				}
 				for (wave = 0; wave < 6; wave++)
 				{
-					var next_gap = (gap + (Math.random() > 0.5 ? 1 : -1) + 6) % 6;
+					var next_gap   = (gap + (Math.random() > 0.5 ? 1 : -1) + 6) % 6;
 					var leave_even = [gap];
-					var leave_odd = [gap, next_gap];
+					var leave_odd  = [gap, next_gap];
 					if (type === '4labyrinth' || type === '4ifuckedup')
 					{
 						leave_even.push((gap + 3) % 6);
@@ -733,13 +745,14 @@ var duper_hexagon = function ()
 					if (wave < 5)
 					{
 						drawWave(width, tick + wave * 160 / level.obstacle_speed + 80 / level.obstacle_speed,
-								leave_odd);
+							leave_odd);
 					}
 					gap = next_gap;
 				}
 				next_obstacle_set_at += 1120 / level.obstacle_speed;
-			} else if (type === 'quickalt' || type === 'quickeralt') // Quick alternating 3 obstacles
+			} else if (type === 'quickalt' || type === 'quickeralt')
 			{
+				// Quick alternating 3 obstacles
 				for (wave = 0; wave < 3; wave++)
 				{
 					drawWave(40, tick + wave * 320 / level.obstacle_speed, [0, 2, 4]);
@@ -759,22 +772,22 @@ var duper_hexagon = function ()
 					var gaps_fast;
 					if (type === 'multi4')
 					{
-						var flip = Math.random() < 0.5;
+						var flip    = Math.random() < 0.5;
 						gaps_normal = [(obs + 1) % 6, (obs + 2) % 6, (obs + 4) % 6, (obs + 5) % 6];
-						gaps_fast = [obs, (obs + (flip ? 1 : 2)) % 6, (obs + 3) % 6, (obs + (flip ? 4 : 5)) % 6];
+						gaps_fast   = [obs, (obs + (flip ? 1 : 2)) % 6, (obs + 3) % 6, (obs + (flip ? 4 : 5)) % 6];
 					} else
 					{
 						gaps_normal = [(obs + 1) % 6, (obs + 3) % 6, (obs + 5) % 6];
-						gaps_fast = [obs, (obs + 2) % 6, (obs + 4) % 6, (obs + 5) % 6];
+						gaps_fast   = [obs, (obs + 2) % 6, (obs + 4) % 6, (obs + 5) % 6];
 					}
 					drawWave(40, tick + wave * 320 / level.obstacle_speed, gaps_normal);
 					drawWave(26.67, tick + wave * 320 / level.obstacle_speed, gaps_fast, 1.5);
 				}
 				next_obstacle_set_at += 960 / level.obstacle_speed;
-			// Similar to labyrinth, but is longer and has 2 or 3 changes in every direction
 			} else if (type === 'quickrepeat')
 			{
-				gap = Math.floor(Math.random() * 6);
+				// Similar to labyrinth, but is longer and has 2 or 3 changes in every direction
+				gap             = Math.floor(Math.random() * 6);
 				var total_waves = 0;
 				for (var subset = 0; subset < 4; subset++)
 				{
@@ -786,29 +799,29 @@ var duper_hexagon = function ()
 						{
 							alt_gap = (gap + (subset % 2 === 0 ? 1 : 5)) % 6;
 							drawWave(72,
-									tick + (wave + total_waves) * 140 / level.obstacle_speed + 70 / level.obstacle_speed,
-									[gap, alt_gap]);
+								tick + (wave + total_waves) * 140 / level.obstacle_speed + 70 / level.obstacle_speed,
+								[gap, alt_gap]);
 							gap = alt_gap;
 						}
 					}
 					total_waves += waves;
 				}
 				next_obstacle_set_at += (total_waves + 1) * 140 / level.obstacle_speed;
-			// 4 fast obstacles with symmetric exits
 			} else if (type === '4fast')
 			{
+				// 4 fast obstacles with symmetric exits
 				for (wave = 0; wave < 6; wave++)
 				{
 					gap = Math.floor(Math.random() * 6);
 					drawWave(26.67, tick + wave * 240 / level.obstacle_speed, [gap, (gap + 3) % 6], 1.5);
 				}
 				next_obstacle_set_at += 1440 / level.obstacle_speed;
-			// 4 obstacles which pass through the center
 			} else if (type === '4through')
 			{
+				// 4 obstacles which pass through the center
 				for (wave = 0; wave < 3; wave++)
 				{
-					gap = Math.floor(Math.random() * 6);
+					gap     = Math.floor(Math.random() * 6);
 					alt_gap = Math.random() > 0.25 ? (gap + 2) % 6 : (gap + 3) % 6;
 					drawWave(40, tick + wave * 360 / level.obstacle_speed, [gap, alt_gap], 1, true);
 				}
@@ -831,16 +844,16 @@ var duper_hexagon = function ()
 	var game_created = false;
 
 	var DuperHexagon = {
-		preload: function ()
+		preload: function()
 		{
 			game.load.audio('pixel_world', ['assets/music/pixel_world_lo.ogg', 'assets/music/pixel_world_lo.mp3']);
 			game.load.audio('second_source',
-					['assets/music/second_source_lo.ogg', 'assets/music/second_source_lo.mp3']);
+				['assets/music/second_source_lo.ogg', 'assets/music/second_source_lo.mp3']);
 			game.load.audio('reboot_complete',
-					['assets/music/reboot_complete_lo.ogg', 'assets/music/reboot_complete_lo.mp3']);
+				['assets/music/reboot_complete_lo.ogg', 'assets/music/reboot_complete_lo.mp3']);
 			game.load.image('pickup', 'assets/img/pickup.png');
 		},
-		create: function ()
+		create: function()
 		{
 			game_created = true;
 			// Do not stop when the window loses focus
@@ -865,13 +878,13 @@ var duper_hexagon = function ()
 				tryRestart();
 			});
 		},
-		update: function ()
+		update: function()
 		{
 			if (music_loaded)
 			{
 				if (crashed === false && playing === true)
 				{
-					var left  = keys.left.isDown  || keys.A.isDown;
+					var left  = keys.left.isDown || keys.A.isDown;
 					var right = keys.right.isDown || keys.D.isDown;
 					game.world.rotation += level.rotation_speed;
 					if (left)
@@ -907,15 +920,15 @@ var duper_hexagon = function ()
 
 	return {
 		start: tryRestart,
-		addStartHandler : function(cb)
+		addStartHandler: function(cb)
 		{
 			start_callbacks.push(cb);
 		},
-		addLoadHandler : function(cb)
+		addLoadHandler: function(cb)
 		{
 			loaded_callbacks.push(cb);
 		},
-		addCrashHandler : function(cb)
+		addCrashHandler: function(cb)
 		{
 			crash_callbacks.push(cb);
 		}
