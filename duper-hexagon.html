@@ -34,12 +34,17 @@
                 <p>Press Enter to restart, or choose another level:</p>
             </span>
             <span ng-show="state.started === false || state.crashed === true">
-                <button ng-click="state.start(1)">Level 1</button>
-                <button ng-click="state.start(2)">Level 2</button>
-                <button ng-click="state.start(3)">Level 3</button>
-                <button ng-click="state.start(4)">Level 4</button>
-                <button ng-click="state.start(5)">Level 5</button>
-                <button ng-click="state.start(6)">Level 6</button>
+                <button ng-click="state.start(1)">Serenity</button>
+                <button ng-click="state.start(2)">Tension</button>
+                <button ng-click="state.start(3)">Panic</button>
+                <br><br>
+                <button ng-click="state.start(4)">Serenity+</button>
+                <button ng-click="state.start(5)">Tension+</button>
+                <button ng-click="state.start(6)">Panic+</button>
+                <br><br>
+                <button ng-click="state.start(7)">Serenity Overtime</button>
+                <button ng-click="state.start(8)">Tension Overtime</button>
+                <button ng-click="state.start(9)">Panic Overtime</button>
             </span>
             <span ng-show="state.loading === true">Loading...</span>
         </div>
