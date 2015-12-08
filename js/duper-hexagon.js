@@ -104,8 +104,8 @@ var duper_hexagon = function ()
 			var proportion_x      = is_pickup === true ? pickup_proportion_x      : obs_proportion_x;
 			var proportion_y      = is_pickup === true ? pickup_proportion_y      : obs_proportion_y;
 			var points            = is_pickup === true ? median_interval_points   : interval_points;
-			var danger_zone       = is_pickup === true ? pickup_danger_zone       : obs_danger_zone;
-			var leave_danger_zone = is_pickup === true ? pickup_leave_danger_zone : obs_leave_danger_zone;
+			var danger_zone       = is_pickup === true ? pickup_danger_zone       : outer_danger_zone;
+			var leave_danger_zone = is_pickup === true ? pickup_leave_danger_zone : inner_danger_zone;
 			if (points[interval].x !== 0)
 			{
 				var m = Math.abs(points[interval].y / points[interval].x); // as in y = mx
@@ -189,8 +189,8 @@ var duper_hexagon = function ()
 	var pickups = [];
 	// x coordinates for each straight when we know that an obstacle is close enough to the player to actually touch
 	// him/her
-	var obs_danger_zone = [];
-	var obs_leave_danger_zone = [];
+	var outer_danger_zone = [];
+	var inner_danger_zone = [];
 	var pickup_danger_zone = [];
 	var pickup_leave_danger_zone = [];
 
@@ -256,12 +256,42 @@ var duper_hexagon = function ()
 
 	var updateObstaclesAndPickups = function ()
 	{
+		var points;
+		/**
+		 * Checks whether a polygon has entered or left the danger zone by comparing some of its points to the
+		 * delimiting the danger zone's inner and outer boundaries.
+		 *
+		 * The idea of this is as follows: since the center is at (0,0), the points' values decrease consistently until
+		 * they reach the center. Therefore, to know whether the danger zone has been entered or exited, we just need to
+		 * compare the magnitude of a point against the beginning/end of the danger zone; if it's smaller, the point is
+		 * past the danger zone.
+		 *
+		 * When the point moves from (0,0) to the outside, everything is reversed; the beginning of the danger zone is
+		 * the inner boundary, not the outer one, and a point is past a boundary when its magnitude is bigger than the
+		 * boundary point's.
+		 *
+		 * @param interval The interval which has to be tested
+		 * @param first_zone Whether to test if the polygon may be entering the danger zone (true) or leaving it (false)
+		 * @param mirror Whether the polygon is moving from the inside to the outside (true) or not (false)
+		 */
+		var checkZone = function(interval, first_zone, mirror)
+		{
+			first_zone = first_zone !== false;
+			mirror = mirror !== false;
+			var point = first_zone ? points[0] : points[3];
+			var target_collection = first_zone === mirror ? inner_danger_zone : outer_danger_zone;
+			var threshold = mirror ? -1 : 1;
+			var check_x = target_collection[interval].x !== 0 && point.x / target_collection[interval].x < threshold;
+			var check_y = target_collection[interval].y !== 0 && point.y / target_collection[interval].y < threshold;
+			return check_x || check_y;
+		};
+
 		var to_remove = [];
 		var interval;
 
 		obstacles.map(function (obstacle, index)
 		{
-			var points = obstacle.points;
+			points = obstacle.points;
 			var graphics = obstacle.graphics;
 			interval = obstacle.interval;
 			var old_x_0 = points[0].x;
@@ -316,9 +346,7 @@ var duper_hexagon = function ()
 						graphics.kill();
 					} else
 					{
-						if (obstacle.reentered_danger === false &&
-								(points[0].x / obs_leave_danger_zone[alt_interval].x > 1 && obs_leave_danger_zone[alt_interval].x !== 0 ||
-								points[0].y / obs_leave_danger_zone[alt_interval].y > 1 && obs_leave_danger_zone[alt_interval].y !== 0 ))
+						if (obstacle.reentered_danger === false && checkZone(interval, true, true))
 						{
 							obstacle.reentered_danger = true;
 							blocked_intervals[alt_interval]++;
@@ -327,9 +355,7 @@ var duper_hexagon = function ()
 								onCrash();
 							}
 						}
-						if (obstacle.releft_danger === false &&
-								(points[3].x / obs_danger_zone[alt_interval].x > 1 && obs_danger_zone[alt_interval].x !== 0 ||
-								points[3].y / obs_danger_zone[alt_interval].y > 1 && obs_danger_zone[alt_interval].y !== 0))
+						if (obstacle.releft_danger === false && checkZone(interval, false, true))
 						{
 							obstacle.releft_danger = true;
 							blocked_intervals[alt_interval]--;
@@ -338,9 +364,7 @@ var duper_hexagon = function ()
 				}
 				if (obstacle.past_center !== true)// Normal case: travelling from the outside towards the center
 				{
-					if (obstacle.entered_danger === false &&
-							(points[0].x / obs_danger_zone[interval].x < 1 ||
-							points[0].y / obs_danger_zone[interval].y < 1))
+					if (obstacle.entered_danger === false && checkZone(interval, true, false))
 					{
 						obstacle.entered_danger = true;
 						blocked_intervals[interval]++;
@@ -348,9 +372,8 @@ var duper_hexagon = function ()
 						{
 							onCrash();
 						}
-					} if (obstacle.left_danger === false &&
-						(points[3].x / obs_leave_danger_zone[interval].x < 1 ||
-						points[3].y / obs_leave_danger_zone[interval].y < 1))
+					} if (obstacle.entered_danger === true && obstacle.left_danger === false &&
+						checkZone(interval, false, false))
 					{
 						obstacle.left_danger = true;
 						blocked_intervals[interval]--;
