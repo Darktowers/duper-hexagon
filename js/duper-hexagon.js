@@ -135,13 +135,13 @@ var duper_hexagon = function()
 		}
 	];
 
-	var SIZE_X        = 800;
-	var SIZE_Y        = 600;
-	var PLAYER_RADIUS = 10;
-	var CENTER_RADIUS = 40;
-	var CENTER_BORDER = 20;
-	var NUM_INTERVALS = 6;
-	var PICKUP_HEIGHT = 52;
+	var SIZE_X              = 800;
+	var SIZE_Y              = 600;
+	var PLAYER_RADIUS       = 10;
+	var CENTER_RADIUS       = 40;
+	var CENTER_BORDER       = 20;
+	var NUM_INTERVALS       = 6;
+	var PICKUP_HEIGHT       = 52;
 	var MULTIPLIER_INCREASE = 1.0116;
 
 	var sqrt3           = Math.sqrt(3);
@@ -293,11 +293,18 @@ var duper_hexagon = function()
 		var rebounds         = obstacle.rebounds || false;
 		var group            = passes_through || rebounds ? obstacles_group_top : obstacles_group;
 		var color            = getColor(obstacle);
+		var obstacle_tick    = obstacle.tick;
+		var distance         = 0;
+		if (obstacle_tick - tick > 0)
+		{
+			distance = (obstacle_tick - tick) * level.obstacle_speed;
+		}
 
-		var p1 = new Phaser.Point(interval_points[interval].x * speed_multiplier,
-			interval_points[interval].y * speed_multiplier);
-		var p2 = new Phaser.Point(interval_points[interval + 1].x * speed_multiplier,
-			interval_points[interval + 1].y * speed_multiplier);
+		var p1 = new Phaser.Point(
+				(interval_points[interval].x + distance * obs_proportion_x[interval]) * speed_multiplier,
+				(interval_points[interval].y + distance * obs_proportion_y[interval]) * speed_multiplier);
+		var p2 = new Phaser.Point((interval_points[interval + 1].x + distance * obs_proportion_x[interval + 1]) * speed_multiplier,
+				(interval_points[interval + 1].y + distance * obs_proportion_y[interval + 1]));
 		var p3 = new Phaser.Point(p2.x + width * obs_proportion_x[interval + 1],
 			p2.y + width * obs_proportion_y[interval + 1]);
 		var p4 = new Phaser.Point(p1.x + width * obs_proportion_x[interval],
@@ -331,9 +338,9 @@ var duper_hexagon = function()
 		if (level.overtime)
 		{
 			var pickup      = game.add.sprite(
-					median_interval_points[interval].x,
-					median_interval_points[interval].y,
-					'pickup');
+				median_interval_points[interval].x,
+				median_interval_points[interval].y,
+				'pickup');
 			pickup.anchor.x = 0.5;
 			pickup.anchor.y = 0.5;
 			obstacles_group.add(pickup);
@@ -553,7 +560,7 @@ var duper_hexagon = function()
 	};
 
 	var cache_powers = {};
-	var onGotPickup = function()
+	var onGotPickup  = function()
 	{
 		if (level.overtime)
 		{
@@ -696,7 +703,6 @@ var duper_hexagon = function()
 		tick                 = 0;
 		multiplier           = 1;
 		next_obstacle_set_at = level.first_tick;
-		next_obstacles       = [];
 		last_pickup_at       = 0;
 		next_pickups         = [];
 		last_wave_tick       = 0;
@@ -786,7 +792,6 @@ var duper_hexagon = function()
 	var tick                 = 0;
 	var multiplier           = 1;
 	var next_obstacle_set_at = 0;
-	var next_obstacles       = [];
 	var last_pickup_at       = 0;
 	var next_pickups         = [];
 	var last_wave_tick       = 0;
@@ -795,6 +800,7 @@ var duper_hexagon = function()
 	// Create and enqueue sets of obstacles
 	var obstacleSets = function()
 	{
+		var next_obstacles = [];
 		var drawWave = function(wave)
 		{
 			var wave_tick = Math.round(wave.start_tick);
@@ -954,7 +960,8 @@ var duper_hexagon = function()
 					if (wave === 4)
 					{
 						leave_odd = [gap, (gap + 1) % 6, (gap + 5) % 6];
-					} else if (wave === 5) {
+					} else if (wave === 5)
+					{
 						leave_even = [(gap + 1) % 6, (gap + 5) % 6];
 					}
 					drawWave({
@@ -1117,17 +1124,14 @@ var duper_hexagon = function()
 				next_obstacle_set_at += 1080 / speed;
 			}
 		}
-		drawPartialSets();
-	};
 
-	var drawPartialSets = function()
-	{
 		var obstacle;
-		while (next_obstacles.length > 0 && next_obstacles[0].tick <= tick)
+		while (next_obstacles.length > 0)
 		{
 			obstacle = next_obstacles.shift();
 			drawSingleObstacle(obstacle);
 		}
+
 		var pickup;
 		while (next_pickups.length > 0 && next_pickups[0].tick <= tick)
 		{
