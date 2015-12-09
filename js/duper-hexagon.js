@@ -94,11 +94,11 @@ var duper_hexagon = function()
 		{
 			rotation_speed: 0.01,
 			player_speed: Math.PI / 40,
-			player_color: 0xFF66FF,
-			center_color: 0xFF33FF,
-			obstacle_color: 0xFF66FF,
-			bgcolor1: 0x663366,
-			bgcolor2: 0x442244,
+			player_color: 0xFF99FF,
+			center_color: 0xFF66FF,
+			obstacle_color: 0xFF99FF,
+			bgcolor1: 0xFFFFFF,
+			bgcolor2: 0xFFDDFF,
 			obstacle_speed: 4,
 			first_tick: 0,
 			obstacle_types: ['single45', 'single5op', '4labyrinth', '4ifuckedup'],
@@ -111,8 +111,8 @@ var duper_hexagon = function()
 			player_color: 0x33CCDD,
 			center_color: 0x00EEFF,
 			obstacle_color: 0x33CCDD,
-			bgcolor1: 0x226666,
-			bgcolor2: 0x144444,
+			bgcolor1: 0xCCFFFF,
+			bgcolor2: 0xBBEEEE,
 			obstacle_speed: 6,
 			first_tick: 30,
 			obstacle_types: ['single5', 'ifuckedup', 'quickrepeat', 'quickalt', 'multi4'],
@@ -125,8 +125,8 @@ var duper_hexagon = function()
 			player_color: 0xFF6633,
 			center_color: 0xFF7740,
 			obstacle_color: 0xFF6633,
-			bgcolor1: 0x662010,
-			bgcolor2: 0x44140C,
+			bgcolor1: 0xFFDDBB,
+			bgcolor2: 0xFFCC99,
 			obstacle_speed: 8,
 			first_tick: 60,
 			obstacle_types: ['fat5', 'fat5op', 'ifuckedup', 'labyrinth', 'quickeralt', 'multi4', '4fast'],
@@ -304,7 +304,7 @@ var duper_hexagon = function()
 				(interval_points[interval].x + distance * obs_proportion_x[interval]) * speed_multiplier,
 				(interval_points[interval].y + distance * obs_proportion_y[interval]) * speed_multiplier);
 		var p2 = new Phaser.Point((interval_points[interval + 1].x + distance * obs_proportion_x[interval + 1]) * speed_multiplier,
-				(interval_points[interval + 1].y + distance * obs_proportion_y[interval + 1]));
+				(interval_points[interval + 1].y + distance * obs_proportion_y[interval + 1]) * speed_multiplier);
 		var p3 = new Phaser.Point(p2.x + width * obs_proportion_x[interval + 1],
 			p2.y + width * obs_proportion_y[interval + 1]);
 		var p4 = new Phaser.Point(p1.x + width * obs_proportion_x[interval],
