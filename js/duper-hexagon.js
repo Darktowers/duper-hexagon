@@ -55,7 +55,8 @@ var duper_hexagon = function()
 			bgcolor2: 0x221122,
 			obstacle_speed: 4,
 			first_tick: 0,
-			obstacle_types: ['4through', '5rebound', '4ifuckeduprebound', '4labyrinthrebound', 'quickaltrebound'],
+			obstacle_types: ['4through', '5rebound', '4ifuckeduprebound', '4labyrinthrebound', 'quickaltrebound',
+				'quickaltthrough'],
 			song: 'pixel_world'
 		},
 		{
@@ -327,16 +328,19 @@ var duper_hexagon = function()
 
 	var drawPickup = function(interval)
 	{
-		var pickup      = game.add.sprite(
-			median_interval_points[interval].x,
-			median_interval_points[interval].y,
-			'pickup');
-		pickup.anchor.x = 0.5;
-		pickup.anchor.y = 0.5;
-		obstacles_group.add(pickup);
-		pickup.interval = interval;
-		pickup.rotation = -5 * Math.PI / 6 + Math.PI * interval / 3;
-		pickups.push(pickup);
+		if (level.overtime)
+		{
+			var pickup      = game.add.sprite(
+					median_interval_points[interval].x,
+					median_interval_points[interval].y,
+					'pickup');
+			pickup.anchor.x = 0.5;
+			pickup.anchor.y = 0.5;
+			obstacles_group.add(pickup);
+			pickup.interval = interval;
+			pickup.rotation = -5 * Math.PI / 6 + Math.PI * interval / 3;
+			pickups.push(pickup);
+		}
 	};
 
 	var updateObstaclesAndPickups = function()
@@ -548,9 +552,22 @@ var duper_hexagon = function()
 		}
 	};
 
-	var onGotPickup = function(interval)
+	var cache_powers = {};
+	var onGotPickup = function()
 	{
-		console.log('got pickup', interval);
+		if (level.overtime)
+		{
+			// (tick - last_pickup_at) / 30 is an exponent such that MULTIPLIER_INCREASE ^ exponent = multiplier.
+			// If we divided the multiplier by such an exponent, the multiplier would become 1 again - so we need a
+			// smaller exponent to keep the difficult going up.
+			var exponent = Math.ceil((tick - last_pickup_at) / 35);
+			if (!cache_powers[exponent]) // Avoid expensive Math.pow calls by caching the results
+			{
+				cache_powers[exponent] = Math.pow(MULTIPLIER_INCREASE, exponent);
+			}
+			multiplier /= cache_powers[exponent];
+			last_pickup_at = tick;
+		}
 	};
 
 	var updatePlayerPos = function()
@@ -677,9 +694,13 @@ var duper_hexagon = function()
 		crashed              = false;
 		playing              = true;
 		tick                 = 0;
-		multiplier         = 1;
+		multiplier           = 1;
 		next_obstacle_set_at = level.first_tick;
 		next_obstacles       = [];
+		last_pickup_at       = 0;
+		next_pickups         = [];
+		last_wave_tick       = 0;
+		wave_number          = 0;
 		obstacle_types       = level.obstacle_types;
 
 		// Clean up a previous run
@@ -766,23 +787,40 @@ var duper_hexagon = function()
 	var multiplier           = 1;
 	var next_obstacle_set_at = 0;
 	var next_obstacles       = [];
+	var last_pickup_at       = 0;
+	var next_pickups         = [];
+	var last_wave_tick       = 0;
+	var wave_number          = 0;
 
 	// Create and enqueue sets of obstacles
 	var obstacleSets = function()
 	{
 		var drawWave = function(wave)
 		{
+			var wave_tick = Math.round(wave.start_tick);
 			for (var interval = 0; interval < 6; interval++)
 			{
 				if (wave.gaps.indexOf(interval) === -1)
 				{
 					next_obstacles.push({
-						tick: Math.round(wave.start_tick),
+						tick: wave_tick,
 						width: wave.width,
 						interval: interval,
 						speed_multiplier: wave.speed_multiplier || 1,
 						passes_through: wave.passes_through || false,
 						rebounds: wave.rebounds || false
+					});
+				}
+			}
+			if (wave_tick > last_wave_tick && wave.pickups !== false)
+			{
+				last_wave_tick = wave_tick;
+				wave_number++;
+				if (wave_number % 8 === 0)
+				{
+					next_pickups.push({
+						interval: wave.gaps[Math.floor(Math.random() * wave.gaps.length)],
+						tick: Math.round(wave_tick)
 					});
 				}
 			}
@@ -856,7 +894,7 @@ var duper_hexagon = function()
 					type === '4ifuckeduprebound';
 				// Gaps open and close, 5-4-5-4... (no prefix) or symmetrical 4-2-4-2... (4-prefix)
 				gap   = Math.floor(Math.random() * 6);
-				width = 88;
+				width = 80;
 				if (i_fucked_up)
 				{
 					width = 40;
@@ -877,6 +915,7 @@ var duper_hexagon = function()
 						width: width,
 						start_tick: tick + wave * 160 / speed,
 						gaps: leave_even,
+						pickups: wave === 5,
 						rebounds: should_rebound && wave === 5
 					});
 					if (wave < 5)
@@ -884,7 +923,8 @@ var duper_hexagon = function()
 						drawWave({
 							width: width,
 							start_tick: tick + (80 + wave * 160) / speed,
-							gaps: leave_odd
+							gaps: leave_odd,
+							pickups: false
 						});
 					}
 					gap = next_gap;
@@ -921,14 +961,16 @@ var duper_hexagon = function()
 						width: width,
 						start_tick: tick + wave * 160 / speed,
 						gaps: leave_even,
-						passes_through: wave === 5
+						passes_through: wave === 5,
+						pickups: wave === 5
 					});
 					if (wave < 5)
 					{
 						drawWave({
 							width: width,
 							start_tick: tick + (80 + wave * 160) / speed,
-							gaps: leave_odd
+							gaps: leave_odd,
+							pickups: false
 						});
 					}
 					if (wave <= 4)
@@ -1019,7 +1061,8 @@ var duper_hexagon = function()
 							width: 72,
 							start_tick: tick + (wave + total_waves) * 140 / speed,
 							gaps: [gap],
-							rebounds: wave === waves - 1 && subset === 3 && type === 'quickrepeatrebound'
+							rebounds: wave === waves - 1 && subset === 3 && type === 'quickrepeatrebound',
+							pickups: wave === 5
 						});
 						if (wave < waves - 1 || subset < 3)
 						{
@@ -1028,6 +1071,7 @@ var duper_hexagon = function()
 								width: 72,
 								start_tick: tick + ((wave + total_waves) * 140 + 70) / speed,
 								gaps: [gap, alt_gap],
+								pickups: false
 							});
 							gap = alt_gap;
 						}
@@ -1037,7 +1081,7 @@ var duper_hexagon = function()
 				next_obstacle_set_at += (total_waves + 1) * 140 / speed;
 				if (type === 'quickrepeatrebound')
 				{
-					next_obstacle_set_at += 180 / level.speed;
+					next_obstacle_set_at += 180 / speed;
 				}
 			} else if (type === '4fast' || type === '4fastrebound' || type === '4fastthrough')
 			{
@@ -1048,7 +1092,7 @@ var duper_hexagon = function()
 					gap = Math.floor(Math.random() * 6);
 					drawWave({
 						width: 40,
-						start_tick: tick + tick_multiplier * wave * 240 / level.speed,
+						start_tick: tick + tick_multiplier * wave * 240 / speed,
 						gaps: [gap, (gap + 3) % 6],
 						speed_multiplier: 1.5,
 						rebounds: type === '4fastrebound',
@@ -1078,10 +1122,17 @@ var duper_hexagon = function()
 
 	var drawPartialSets = function()
 	{
+		var obstacle;
 		while (next_obstacles.length > 0 && next_obstacles[0].tick <= tick)
 		{
-			var obstacle = next_obstacles.shift();
+			obstacle = next_obstacles.shift();
 			drawSingleObstacle(obstacle);
+		}
+		var pickup;
+		while (next_pickups.length > 0 && next_pickups[0].tick <= tick)
+		{
+			pickup = next_pickups.shift();
+			drawPickup(pickup.interval);
 		}
 	};
 
