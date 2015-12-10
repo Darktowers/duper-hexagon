@@ -1,4 +1,4 @@
-var duper_hexagon = function()
+var duperHexagon = function()
 {
 	"use strict";
 
@@ -166,6 +166,7 @@ var duper_hexagon = function()
 		player_graphics.beginFill(level.player_color);
 		player_graphics.drawPolygon(player_poly);
 		player_graphics.endFill();
+		player_group.add(player_graphics);
 	};
 
 	// Points which, when connected to (0,0) through a segment, divide the game screen in six equilateral triangles
@@ -301,10 +302,10 @@ var duper_hexagon = function()
 		}
 
 		var p1 = new Phaser.Point(
-				(interval_points[interval].x + distance * obs_proportion_x[interval]) * speed_multiplier,
-				(interval_points[interval].y + distance * obs_proportion_y[interval]) * speed_multiplier);
+			(interval_points[interval].x + distance * obs_proportion_x[interval]) * speed_multiplier,
+			(interval_points[interval].y + distance * obs_proportion_y[interval]) * speed_multiplier);
 		var p2 = new Phaser.Point((interval_points[interval + 1].x + distance * obs_proportion_x[interval + 1]) * speed_multiplier,
-				(interval_points[interval + 1].y + distance * obs_proportion_y[interval + 1]) * speed_multiplier);
+			(interval_points[interval + 1].y + distance * obs_proportion_y[interval + 1]) * speed_multiplier);
 		var p3 = new Phaser.Point(p2.x + width * obs_proportion_x[interval + 1],
 			p2.y + width * obs_proportion_y[interval + 1]);
 		var p4 = new Phaser.Point(p1.x + width * obs_proportion_x[interval],
@@ -667,8 +668,9 @@ var duper_hexagon = function()
 
 	var onCrash = function()
 	{
-		crashed = true;
-		playing = false;
+		crashed      = true;
+		playing      = false;
+		allow_moving = false;
 		song.fadeOut(200);
 		crash_callbacks.map(function(cb)
 		{
@@ -678,37 +680,11 @@ var duper_hexagon = function()
 
 	var curr_level;
 	var level;
-	var restart = function(level_index)
+	var game_disabled = false;
+	var allow_moving  = false;
+
+	var cleanupRun = function()
 	{
-		// Do not proceed if we are still in the preloading phase. Instead of that, try again in 100 ms.
-		if (game_created === false)
-		{
-			window.setTimeout(function()
-			{
-				restart(level_index);
-			}, 100);
-			return;
-		}
-
-		level              = levels[level_index] ? levels[level_index] : levels[curr_level];
-		level.pickup_speed = sqrt3 * level.obstacle_speed / 2;
-		curr_level         = level_index ? level_index : curr_level;
-		music_loaded       = false;
-
-		song      = game.add.audio(level.song);
-		song.loop = true;
-
-		crashed              = false;
-		playing              = true;
-		tick                 = 0;
-		multiplier           = 1;
-		next_obstacle_set_at = level.first_tick;
-		last_pickup_at       = 0;
-		next_pickups         = [];
-		last_wave_tick       = 0;
-		wave_number          = 0;
-		obstacle_types       = level.obstacle_types;
-
 		// Clean up a previous run
 		if (player_graphics)
 		{
@@ -725,6 +701,108 @@ var duper_hexagon = function()
 			obstacles         = [];
 			blocked_intervals = [0, 0, 0, 0, 0, 0];
 		}
+
+		background_triangles_odd.map(function(graphics)
+		{
+			graphics.kill();
+		});
+		background_triangles_even.map(function(graphics)
+		{
+			graphics.kill();
+		});
+
+		crashed              = false;
+		playing              = true;
+		tick                 = 0;
+		multiplier           = 1;
+		next_obstacle_set_at = level.first_tick;
+		last_pickup_at       = 0;
+		next_pickups         = [];
+		last_wave_tick       = 0;
+		wave_number          = 0;
+		obstacle_types       = level.obstacle_types;
+	};
+
+	var background_triangles_odd  = [];
+	var background_triangles_even = [];
+
+	// Mini start: display the player, the center hexagon and the background, but do not paint obstacles
+	var miniStart = function(level_index)
+	{
+		// Do not proceed if we are still in the preloading phase. Instead of that, try again in 100 ms.
+		if (game_created === false)
+		{
+			window.setTimeout(function()
+			{
+				miniStart(level_index);
+			}, 100);
+			return -1;
+		}
+
+		level              = levels[level_index] ? levels[level_index] : levels[curr_level];
+		level.pickup_speed = sqrt3 * level.obstacle_speed / 2;
+		curr_level         = level_index ? level_index : curr_level;
+		music_loaded       = false;
+		allow_moving       = false;
+
+		song      = game.add.audio(level.song);
+		song.loop = true;
+
+		cleanupRun();
+
+		var bg_polygons = backgroundTriangles();
+
+		var background_graphics_odd  = new Phaser.Graphics(game, 0, 0);
+		var background_graphics_even = new Phaser.Graphics(game, 0, 0);
+		background_graphics_odd.beginFill(level.bgcolor1);
+		background_graphics_even.beginFill(level.bgcolor2);
+		for (var i = 0; i < bg_polygons.length; i++)
+		{
+			var graphics = i % 2 === 0 ? background_graphics_even : background_graphics_odd;
+			graphics.drawPolygon(bg_polygons[i]);
+			var target = i % 2 === 0 ? background_triangles_even : background_triangles_odd;
+			target.push(graphics);
+		}
+		background_graphics_odd.endFill();
+		background_graphics_even.endFill();
+		background_group.add(background_graphics_even);
+		background_group.add(background_graphics_odd);
+
+		var center_hexagon_graphics = new Phaser.Graphics(game, 0, 0);
+		var center_hexagon_poly     = buildRegularPolygon(0, 0, NUM_INTERVALS, CENTER_RADIUS);
+		center_hexagon_graphics.clear();
+		center_hexagon_graphics.beginFill(level.center_color);
+		center_hexagon_graphics.drawPolygon(center_hexagon_poly);
+		center_hexagon_graphics.endFill();
+		center_group.add(center_hexagon_graphics);
+
+		player_graphics = new Phaser.Graphics(game, 0, 0);
+		setUpIntervals();
+		updatePlayerInterval();
+		updatePlayerPos();
+
+		game_disabled = true;
+	};
+
+	var restart = function(level_index)
+	{
+		if (miniStart(level_index) === -1)
+		{
+			return; // if miniStart fails, abort
+		}
+
+		// Do not proceed if we are still in the preloading phase. Instead of that, try again in 100 ms.
+		if (game_created === false)
+		{
+			window.setTimeout(function()
+			{
+				restart(level_index);
+			}, 100);
+			return;
+		}
+
+		game_disabled = false;
+		allow_moving  = true;
 
 		// If the user restarts before the song finished fading out, wait for it to finish fading out before playing it
 		// again (otherwise, it won't be played)
@@ -744,45 +822,31 @@ var duper_hexagon = function()
 		{
 			playSong();
 		}
-
-		var bg_polygons = backgroundTriangles();
-
-		var background_graphics_odd  = new Phaser.Graphics(game, 0, 0);
-		var background_graphics_even = new Phaser.Graphics(game, 0, 0);
-		background_graphics_odd.beginFill(level.bgcolor1);
-		background_graphics_even.beginFill(level.bgcolor2);
-		for (var i = 0; i < bg_polygons.length; i++)
-		{
-			var graphics = i % 2 === 0 ? background_graphics_even : background_graphics_odd;
-			graphics.drawPolygon(bg_polygons[i]);
-		}
-		background_graphics_odd.endFill();
-		background_graphics_even.endFill();
-		background_group.add(background_graphics_even);
-		background_group.add(background_graphics_odd);
-
-		var center_hexagon_graphics = new Phaser.Graphics(game, 0, 0);
-		var center_hexagon_poly     = buildRegularPolygon(0, 0, NUM_INTERVALS, CENTER_RADIUS);
-		center_hexagon_graphics.clear();
-		center_hexagon_graphics.beginFill(level.center_color);
-		center_hexagon_graphics.drawPolygon(center_hexagon_poly);
-		center_hexagon_graphics.endFill();
-		center_group.add(center_hexagon_graphics);
-
-		player_graphics = game.add.graphics(0, 0);
-		setUpIntervals();
-		updatePlayerInterval();
-		updatePlayerPos();
-
 		start_callbacks.map(function(cb)
 		{
 			cb();
 		});
+
+		if (game.cache.isSoundDecoded(level.song))
+		{
+			loaded_callbacks.map(function(cb)
+			{
+				cb();
+			});
+		}
+	};
+
+	var tryMiniStart = function(level)
+	{
+		if (playing === false && (level !== undefined || curr_level !== undefined))
+		{
+			miniStart(level);
+		}
 	};
 
 	var tryRestart = function(level)
 	{
-		if (playing === false && (level !== undefined || curr_level !== undefined))
+		if ((playing === false || game_disabled === true) && (level !== undefined || curr_level !== undefined))
 		{
 			restart(level);
 		}
@@ -801,7 +865,7 @@ var duper_hexagon = function()
 	var obstacleSets = function()
 	{
 		var next_obstacles = [];
-		var drawWave = function(wave)
+		var drawWave       = function(wave)
 		{
 			var wave_tick = Math.round(wave.start_tick);
 			for (var interval = 0; interval < 6; interval++)
@@ -1140,8 +1204,17 @@ var duper_hexagon = function()
 		}
 	};
 
-	var music_loaded = false;
-	var game_created = false;
+	var music_loaded     = false;
+	var game_created     = false;
+	var increaseRotation = function()
+	{
+		if (crashed === false && playing === true)
+		{
+			game.world.rotation += level.rotation_speed * multiplier;
+		}
+	};
+
+	var enter_restarts = true;
 
 	var DuperHexagon = {
 		preload: function()
@@ -1175,38 +1248,44 @@ var duper_hexagon = function()
 			keys.enter = game.input.keyboard.addKey(Phaser.Keyboard.ENTER);
 			keys.enter.onDown.add(function()
 			{
-				tryRestart();
+				if (enter_restarts)
+				{
+					tryRestart();
+				}
 			});
 		},
 		update: function()
 		{
-			if (music_loaded)
+			increaseRotation();
+			if (allow_moving)
 			{
-				if (crashed === false && playing === true)
+				var left  = keys.left.isDown || keys.A.isDown;
+				var right = keys.right.isDown || keys.D.isDown;
+				if (left)
 				{
-					var left  = keys.left.isDown || keys.A.isDown;
-					var right = keys.right.isDown || keys.D.isDown;
-					game.world.rotation += level.rotation_speed * multiplier;
-					if (left)
-					{
-						increasePlayerPos(-level.player_speed * multiplier);
-						updatePlayerPos();
-					}
-					else if (right)
-					{
-						increasePlayerPos(level.player_speed * multiplier);
-						updatePlayerPos();
-					}
-					obstacleSets();
-					updateObstaclesAndPickups();
-					// In overtime mode, increase speed every 30 ticks (0.5 s)
-					if (level.overtime && tick % 30 === 0)
-					{
-						multiplier *= MULTIPLIER_INCREASE;
-					}
-					tick++;
+					increasePlayerPos(-level.player_speed * multiplier);
+					updatePlayerPos();
 				}
-			} else if (level && this.cache.isSoundDecoded(level.song))
+				else if (right)
+				{
+					increasePlayerPos(level.player_speed * multiplier);
+					updatePlayerPos();
+				}
+			}
+
+			if (music_loaded && !game_disabled && crashed === false && playing === true)
+			{
+				obstacleSets();
+				updateObstaclesAndPickups();
+				// In overtime mode, increase speed every 30 ticks (0.5 s)
+				if (level.overtime && tick % 30 === 0)
+				{
+					multiplier *= MULTIPLIER_INCREASE;
+				}
+				tick++;
+			}
+
+			if (!music_loaded && !game_disabled && level && this.cache.isSoundDecoded(level.song))
 			{
 				music_loaded = true;
 				loaded_callbacks.map(function(cb)
@@ -1224,16 +1303,25 @@ var duper_hexagon = function()
 	var crash_callbacks  = [];
 
 	return {
-		start: tryRestart,
-		addStartHandler: function(cb)
+		start: tryRestart, // Start a certain level
+		miniStart: tryMiniStart, // Draw the background, the hexagon and the player, but no obstacles
+		allowMoving: function(val) // Allow the player to move after a mini start
+		{
+			allow_moving = val;
+		},
+		enterRestarts: function(val) // Whether pressing enter restarts the game
+		{
+			enter_restarts = val;
+		},
+		addStartHandler: function(cb) // Callback called upon game starting
 		{
 			start_callbacks.push(cb);
 		},
-		addLoadHandler: function(cb)
+		addLoadHandler: function(cb) // Callback called upon a level being fully loaded
 		{
 			loaded_callbacks.push(cb);
 		},
-		addCrashHandler: function(cb)
+		addCrashHandler: function(cb) // Callback called upon player crashing
 		{
 			crash_callbacks.push(cb);
 		}
