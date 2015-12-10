@@ -1,17 +1,61 @@
-div#game {
+div#game, div#game-wrapper, div#floating {
     width: 800px;
     height: 600px;
+    margin: 0;
+    padding: 0;
+}
+
+div#game {
     background-color: #000;
 }
 
-div#menu {
-    width: 800px;
-    height: 600px;
+div#floating {
+    float: left;
     position: absolute;
     top: 0;
     left: 0;
-    float: left;
     z-index: 10;
-    background-color: rgba(0, 0, 0, 0.5);
     color: #FFF;
+    font-family: 'Orbitron', Arial, Verdana, sans-serif;
+    font-size: 1.5em;
+}
+
+div.center {
+    display: flex;
+    align-items: center;
+    text-align: center;
+}
+
+div.cover-game {
+    width: 800px;
+    height: 600px;
+    float: left;
+}
+
+div.semiopaque {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+div.shadow-text {
+    text-shadow: 2px 2px #000;
+}
+
+div.center-text {
+    max-width: 700px;
+    padding: 0 50px 0 50px;
+    width: 100%;
+    text-align: center;
+}
+
+div#timer {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    padding-right: 30px;
+    padding-bottom: 30px;
+}
+
+div#timer h3 {
+    margin: 0;
+    padding: 0;
 }

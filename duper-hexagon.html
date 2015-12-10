@@ -4,6 +4,7 @@
     <meta charset="UTF-8"/>
     <title>Duper Hexagon</title>
     <link rel="stylesheet" href="css/styles.css" type="text/css">
+    <link href='https://fonts.googleapis.com/css?family=Orbitron:500' rel='stylesheet' type='text/css'>
     <script type="text/javascript" src="js/lib/angular.js"></script>
     <script type="text/javascript" src="js/lib/phaser.js"></script>
     <script src="js/duper-hexagon.js"></script>
@@ -15,11 +16,31 @@
         }
     </style>
 </head>
-<body ng-controller="MainCtrl">
+<body ng-controller="MainCtrl" ng-keydown="state.onPressEnter($event)">
 <div id="main">
     <div id="game-wrapper">
         <div id="game"></div>
-        <div id="menu" ng-show="state.started === false || state.crashed === true || state.loading === true">
+        <div id="floating">
+            <div id="welcome" class="cover-game center semiopaque" ng-if="state.first_game === true">
+                <div class="center-text">
+                    <h1>Duper Hexagon</h1>
+                    <h3>PRESS ENTER TO START</h3>
+                </div>
+            </div>
+            <div id="hints" class="cover-game center shadow-text" ng-show="state.hinting === true">
+                <div class="center-text">
+                    <p ng-repeat="line in state.hints">
+                        {{line}}
+                    </p>
+                </div>
+            </div>
+            <div id="loading" class="cover-game center shadow-text" ng-show="state.loading">
+                <div class="center-text">
+                    <p>Loading...</p>
+                </div>
+            </div>
+            <div id="menu" class="cover-game semiopaque"
+                 ng-show="state.first_game !== true && state.hinting === false && state.crashed === true">
             <span ng-if="state.started === false">
                 <h3>Duper Hexagon</h3>
             </span>
@@ -46,7 +67,10 @@
                 <button ng-click="state.start(8)">Tension Overtime</button>
                 <button ng-click="state.start(9)">Panic Overtime</button>
             </span>
-            <span ng-show="state.loading === true">Loading...</span>
+            </div>
+            <div id="timer" class="shadow-text" ng-show="state.started === true && state.crashed === false">
+                <h3>{{state.time}}</h3>
+            </div>
         </div>
     </div>
     <p>Press Left and Right to turn. Hit Enter to restart if you've crashed.</p>
