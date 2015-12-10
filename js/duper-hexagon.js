@@ -668,9 +668,10 @@ var duperHexagon = function()
 
 	var onCrash = function()
 	{
-		crashed      = true;
-		playing      = false;
-		allow_moving = false;
+		crashed           = true;
+		playing           = false;
+		allow_moving      = false;
+		performed_restart = false;
 		song.fadeOut(200);
 		crash_callbacks.map(function(cb)
 		{
@@ -726,9 +727,20 @@ var duperHexagon = function()
 	var background_triangles_odd  = [];
 	var background_triangles_even = [];
 
+	// If loading takes too long, sometimes it might happen that both miniStart and restart set timeouts, and miniStart
+	// takes place later... which means that no obstacles will be painted and the player will be unable to move. We
+	// set up this variable to ensure that miniStart doesn't run again after a successfull call to restart and before
+	// the game ends (that is, the player crashes).
+	var performed_restart = false;
+
 	// Mini start: display the player, the center hexagon and the background, but do not paint obstacles
 	var miniStart = function(level_index)
 	{
+		if (performed_restart)
+		{
+			return;
+		}
+
 		// Do not proceed if we are still in the preloading phase. Instead of that, try again in 100 ms.
 		if (game_created === false)
 		{
@@ -786,11 +798,6 @@ var duperHexagon = function()
 
 	var restart = function(level_index)
 	{
-		if (miniStart(level_index) === -1)
-		{
-			return; // if miniStart fails, abort
-		}
-
 		// Do not proceed if we are still in the preloading phase. Instead of that, try again in 100 ms.
 		if (game_created === false)
 		{
@@ -799,6 +806,11 @@ var duperHexagon = function()
 				restart(level_index);
 			}, 100);
 			return;
+		}
+
+		if (miniStart(level_index) === -1)
+		{
+			return; // if miniStart fails, abort
 		}
 
 		game_disabled = false;
@@ -834,6 +846,8 @@ var duperHexagon = function()
 				cb();
 			});
 		}
+
+		performed_restart = true;
 	};
 
 	var tryMiniStart = function(level)
