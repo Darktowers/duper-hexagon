@@ -2,6 +2,21 @@ var duperHexagon = function()
 {
 	"use strict";
 
+	var songs = [
+		{
+			name: 'pixel_world',
+			location: ['assets/music/pixel_world_lo.ogg', 'assets/music/pixel_world_lo.mp3']
+		},
+		{
+			name: 'second_source',
+			location: ['assets/music/second_source_lo.ogg', 'assets/music/second_source_lo.mp3']
+		},
+		{
+			name: 'reboot_complete',
+			location: ['assets/music/reboot_complete_lo.ogg', 'assets/music/reboot_complete_lo.mp3']
+		}
+	];
+
 	var levels = [
 		{}, // levels[0] is empty
 		{
@@ -672,7 +687,10 @@ var duperHexagon = function()
 		playing           = false;
 		allow_moving      = false;
 		performed_restart = false;
-		song.fadeOut(200);
+		if (allow_music)
+		{
+			song.fadeOut(200);
+		}
 		crash_callbacks.map(function(cb)
 		{
 			cb();
@@ -757,8 +775,11 @@ var duperHexagon = function()
 		music_loaded       = false;
 		allow_moving       = false;
 
-		song      = game.add.audio(level.song);
-		song.loop = true;
+		if (allow_music)
+		{
+			song      = game.add.audio(level.song);
+			song.loop = true;
+		}
 
 		cleanupRun();
 
@@ -796,6 +817,12 @@ var duperHexagon = function()
 		game_disabled = true;
 	};
 
+	var playSong = function(song)
+	{
+		song.volume = 1;
+		song.play();
+	};
+
 	var restart = function(level_index)
 	{
 		// Do not proceed if we are still in the preloading phase. Instead of that, try again in 100 ms.
@@ -816,30 +843,27 @@ var duperHexagon = function()
 		game_disabled = false;
 		allow_moving  = true;
 
-		// If the user restarts before the song finished fading out, wait for it to finish fading out before playing it
-		// again (otherwise, it won't be played)
-		var playSong = function()
+		if (allow_music)
 		{
-			song.volume = 1;
-			song.play();
-		};
-		if (song.isPlaying)
-		{
-			song.onFadeComplete.add(function()
+			// If the user restarts before the song finished fading out, wait for it to finish fading out before
+			// playing it again (otherwise, it won't be played)
+			if (song.isPlaying)
 			{
-				playSong();
-				song.onFadeComplete.removeAll();
-			});
-		} else
-		{
-			playSong();
+				song.onFadeComplete.addOnce(function()
+				{
+					playSong(song);
+				});
+			} else
+			{
+				playSong(song);
+			}
 		}
 		start_callbacks.map(function(cb)
 		{
 			cb();
 		});
 
-		if (game.cache.isSoundDecoded(level.song))
+		if (!allow_music || game.cache.isSoundDecoded(level.song))
 		{
 			loaded_callbacks.map(function(cb)
 			{
@@ -1228,20 +1252,32 @@ var duperHexagon = function()
 		}
 	};
 
+	var loadMusic = function()
+	{
+		if (songs.length > 0)
+		{
+			var song   = songs.shift();
+			var loader = new Phaser.Loader(game);
+			var signal = loader.audio(song.name, song.location);
+			loader.start();
+			signal.onLoadComplete.addOnce(loadMusic);
+		}
+	};
+
 	var enter_restarts = true;
+	var allow_music    = true;
 
 	var DuperHexagon = {
 		preload: function()
 		{
-			game.load.audio('pixel_world', ['assets/music/pixel_world_lo.ogg', 'assets/music/pixel_world_lo.mp3']);
-			game.load.audio('second_source',
-				['assets/music/second_source_lo.ogg', 'assets/music/second_source_lo.mp3']);
-			game.load.audio('reboot_complete',
-				['assets/music/reboot_complete_lo.ogg', 'assets/music/reboot_complete_lo.mp3']);
 			game.load.image('pickup', 'assets/img/pickup.png');
 		},
 		create: function()
 		{
+			if (allow_music)
+			{
+				loadMusic();
+			}
 			game_created = true;
 			// Do not stop when the window loses focus
 			game.stage.disableVisibilityChange = true;
@@ -1299,7 +1335,7 @@ var duperHexagon = function()
 				tick++;
 			}
 
-			if (!music_loaded && !game_disabled && level && this.cache.isSoundDecoded(level.song))
+			if (!music_loaded && !game_disabled && level && (!allow_music || this.cache.isSoundDecoded(level.song)))
 			{
 				music_loaded = true;
 				loaded_callbacks.map(function(cb)
@@ -1322,6 +1358,14 @@ var duperHexagon = function()
 		allowMoving: function(val) // Allow the player to move after a mini start
 		{
 			allow_moving = val;
+		},
+		allowMusic: function(val)
+		{
+			allow_music = val;
+			if (allow_music)
+			{
+				loadMusic();
+			}
 		},
 		enterRestarts: function(val) // Whether pressing enter restarts the game
 		{

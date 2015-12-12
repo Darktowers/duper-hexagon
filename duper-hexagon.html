@@ -25,6 +25,10 @@
                 <div class="center-text">
                     <h1>Duper Hexagon</h1>
                     <h3>PRESS ENTER TO START</h3>
+                    <div class="corner">
+                        <input type="checkbox" ng-model="state.disable_music" id="disable_music">
+                        <label for="disable_music">Disable music</label>
+                    </div>
                 </div>
             </div>
             <div id="hints" class="cover-game center shadow-text" ng-show="state.hinting === true">
@@ -68,7 +72,7 @@
                 <button ng-click="state.start(9)">Panic Overtime</button>
             </span>
             </div>
-            <div id="timer" class="shadow-text" ng-show="state.started === true && state.crashed === false">
+            <div id="timer" class="shadow-text corner" ng-show="state.started === true && state.crashed === false">
                 <h3>{{state.time}}</h3>
             </div>
         </div>

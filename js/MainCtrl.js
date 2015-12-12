@@ -31,6 +31,7 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 
 	$scope.state = {
 		first_game: true,
+		disable_music: false,
 		started: false,
 		crashed: false,
 		hinting: false,
@@ -42,6 +43,7 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 		start: function(level)
 		{
 			$scope.state.first_game = false;
+			game.allowMusic(!$scope.state.disable_music);
 			if (!$scope.state.best_times[level])
 			{
 				$scope.state.best_times[level] = 0;
@@ -65,7 +67,7 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 				startGame(level);
 			}
 		},
-		onPressEnter : function($event)
+		onPressEnter: function($event)
 		{
 			if ($scope.state.first_game === true && $event.which === 13) // Enter key
 			{
@@ -77,8 +79,8 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 	var startGame = function(level)
 	{
 		$scope.state.current_level = level;
-		$scope.state.hinting = false;
-		$scope.state.loading = true;
+		$scope.state.hinting       = false;
+		$scope.state.loading       = true;
 		$timeout(function()
 		{
 			// Prevent loading dialog from appearing if we have to wait for less than 100 ms,
@@ -90,7 +92,7 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 		}, 100);
 		game.addLoadHandler(function()
 		{
-			$scope.state.loading = false;
+			$scope.state.loading      = false;
 			$scope.state.show_loading = false;
 			if ($scope.state.started === true)
 			{
@@ -117,6 +119,7 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 
 	var game = duperHexagon();
 	game.enterRestarts(false);
+	game.allowMusic(false);
 	game.addStartHandler(function()
 	{
 		$scope.state.started = true;

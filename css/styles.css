@@ -47,12 +47,18 @@ div.center-text {
     text-align: center;
 }
 
-div#timer {
+div.corner {
     position: absolute;
     bottom: 0;
     right: 0;
     padding-right: 30px;
     padding-bottom: 30px;
+}
+
+div.corner input[type=checkbox] {
+    height: 20px;
+    width: 20px;
+    margin: 0;
 }
 
 div#timer h3 {
