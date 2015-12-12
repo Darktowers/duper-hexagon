@@ -18,7 +18,6 @@ var duperHexagon = function()
 	];
 
 	var levels = [
-		{}, // levels[0] is empty
 		{
 			rotation_speed: 0.01,
 			player_speed: Math.PI / 40,
