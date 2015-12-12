@@ -895,6 +895,7 @@ var duperHexagon = function()
 	var next_obstacle_set_at = 0;
 	var last_pickup_at       = 0;
 	var next_pickups         = [];
+	var PICKUP_EVERY         = 6;
 	var last_wave_tick       = 0;
 	var wave_number          = 0;
 
@@ -923,7 +924,7 @@ var duperHexagon = function()
 			{
 				last_wave_tick = wave_tick;
 				wave_number++;
-				if (wave_number % 8 === 0)
+				if (wave_number % PICKUP_EVERY === 0)
 				{
 					next_pickups.push({
 						interval: wave.gaps[Math.floor(Math.random() * wave.gaps.length)],
@@ -933,7 +934,7 @@ var duperHexagon = function()
 			}
 		};
 
-		var speed = level.obstacle_speed * multiplier;
+		var speed = level.obstacle_speed;
 
 		if (tick >= next_obstacle_set_at)
 		{
@@ -956,7 +957,7 @@ var duperHexagon = function()
 						gaps: [i1, i2]
 					});
 				}
-				next_obstacle_set_at += wave_duration * 4 / speed;
+				next_obstacle_set_at += wave_duration * 4 / (speed * multiplier);
 
 			} else if (type === 'single5op' || type === 'single5' || type === 'fat5' || type === 'fat5op' ||
 				type === '5rebound' || type === 'fat5rebound' || type === 'fat5oprebound')
@@ -986,20 +987,20 @@ var duperHexagon = function()
 						rebounds: should_rebound
 					});
 				}
-				next_obstacle_set_at += tick_multiplier * 960 / speed;
+				next_obstacle_set_at += tick_multiplier * 960 / (speed * multiplier);
 				if (type === 'fat5rebound' || type === 'fat5oprebound')
 				{
-					next_obstacle_set_at += 240 / speed;
+					next_obstacle_set_at += 240 / (speed * multiplier);
 				}
 			} else if (type === 'labyrinth' || type === 'ifuckedup' || type === '4labyrinth' || type === '4ifuckedup'
 				|| type === '4ifuckeduprebound' || type === 'ifuckeduprebound' || type === '4labyrinthrebound'
 				|| type === 'labyrinthrebound')
 			{
+				// Gaps open and close, 5-4-5-4... (no prefix) or symmetrical 4-2-4-2... (4-prefix)
 				should_rebound  = type === 'ifuckeduprebound' || type === '4ifuckeduprebound' ||
 					type === 'labyrinthrebound' || type === '4labyrinthrebound';
 				var i_fucked_up = type === 'ifuckedup' || type === '4ifuckedup' || type === 'ifuckeduprebound' ||
 					type === '4ifuckeduprebound';
-				// Gaps open and close, 5-4-5-4... (no prefix) or symmetrical 4-2-4-2... (4-prefix)
 				gap   = Math.floor(Math.random() * 6);
 				width = 80;
 				if (i_fucked_up)
@@ -1036,15 +1037,15 @@ var duperHexagon = function()
 					}
 					gap = next_gap;
 				}
-				next_obstacle_set_at += 1120 / speed;
+				next_obstacle_set_at += 1120 / (speed * multiplier);
 				if (should_rebound)
 				{
 					if (i_fucked_up)
 					{
-						next_obstacle_set_at += 40;
+						next_obstacle_set_at += 40 / (multiplier * speed);
 					} else
 					{
-						next_obstacle_set_at += 80;
+						next_obstacle_set_at += 80 / (multiplier * speed);
 					}
 				}
 			} else if (type === 'labyrinththrough' || type === 'ifuckedupthrough')
@@ -1086,10 +1087,10 @@ var duperHexagon = function()
 						gap = next_gap;
 					}
 				}
-				next_obstacle_set_at += 1160 / speed;
+				next_obstacle_set_at += 1160 / (speed * multiplier);
 				if (type === 'labyrinththrough')
 				{
-					next_obstacle_set_at += 40 / speed;
+					next_obstacle_set_at += 40 / (speed * multiplier);
 				}
 			} else if (type === 'quickalt' || type === 'quickeralt' || type === 'quickaltrebound' || type === 'quickaltthrough')
 			{
@@ -1109,13 +1110,13 @@ var duperHexagon = function()
 						passes_through: wave === 2 && type === 'quickaltthrough'
 					});
 				}
-				next_obstacle_set_at += 1080 / speed;
+				next_obstacle_set_at += 1080 / (speed * multiplier);
 				if (type === 'quickeralt')
 				{
-					next_obstacle_set_at -= 120 / speed;
+					next_obstacle_set_at -= 120 / (speed * multiplier);
 				} else if (type === 'quickaltrebound' || type === 'quickaltthrough')
 				{
-					next_obstacle_set_at += 120 / speed;
+					next_obstacle_set_at += 120 / (speed * multiplier);
 				}
 			} else if (type === 'multi4' || type === 'multi5' || type === 'multi4rebound' || type === 'multi4through')
 			{
@@ -1150,10 +1151,10 @@ var duperHexagon = function()
 						passes_through: wave === 2 && type === 'multi4through'
 					});
 				}
-				next_obstacle_set_at += 960 / speed;
+				next_obstacle_set_at += 960 / (speed * multiplier);
 				if (type === 'multi4rebound' || type === 'multi4through')
 				{
-					next_obstacle_set_at += 120 / speed;
+					next_obstacle_set_at += 120 / (speed * multiplier);
 				}
 			} else if (type === 'quickrepeat' || type === 'quickrepeatrebound')
 			{
@@ -1186,10 +1187,10 @@ var duperHexagon = function()
 					}
 					total_waves += waves;
 				}
-				next_obstacle_set_at += (total_waves + 1) * 140 / speed;
+				next_obstacle_set_at += (total_waves + 1) * 140 / (speed * multiplier);
 				if (type === 'quickrepeatrebound')
 				{
-					next_obstacle_set_at += 180 / speed;
+					next_obstacle_set_at += 180 / (speed * multiplier);
 				}
 			} else if (type === '4fast' || type === '4fastrebound' || type === '4fastthrough')
 			{
@@ -1207,7 +1208,7 @@ var duperHexagon = function()
 						passes_through: type === '4fastthrough'
 					});
 				}
-				next_obstacle_set_at += tick_multiplier * 1440 / speed;
+				next_obstacle_set_at += tick_multiplier * 1440 / (speed * multiplier);
 			} else if (type === '4through')
 			{
 				// 4 obstacles which pass through the center
@@ -1222,7 +1223,7 @@ var duperHexagon = function()
 						passes_through: true
 					});
 				}
-				next_obstacle_set_at += 1080 / speed;
+				next_obstacle_set_at += 1080 / (speed * multiplier);
 			}
 		}
 

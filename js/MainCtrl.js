@@ -21,7 +21,7 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 		null,
 		{
 			text: ['In Overtime mode, everything becomes faster and faster.',
-				'Pick hexagons up to reduce the speed.'],
+				'Pick up hexagons to reduce the speed.'],
 			duration: 5000
 		},
 		null,
@@ -148,14 +148,14 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 			{
 				// First, level n+1 (e.g., Serenity (0) unlocks Tension (1))
 				var to_unlock = $scope.state.current_level + 1;
-				if (!$scope.state.unlocked[to_unlock])
+				if ($scope.state.unlocked[to_unlock] === false)
 				{
 					$scope.state.unlocked[to_unlock] = true;
 					$scope.state.just_unlocked.push(to_unlock);
 				}
 				// Now, level n+3 (e.g., Serenity (0) unlocks Serenity+ (3)).
 				to_unlock = $scope.state.current_level + 3;
-				if (!$scope.state.unlocked[to_unlock])
+				if ($scope.state.unlocked[to_unlock] === false)
 				{
 					$scope.state.unlocked[to_unlock] = true;
 					$scope.state.just_unlocked.push(to_unlock);
