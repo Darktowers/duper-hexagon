@@ -131,39 +131,42 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 
 	var handleArrow = function(key)
 	{
-		var selected = state.selected_level;
-		if (key === 37) // left
+		if (state.mode === 'menu')
 		{
-			selected--;
-			if (selected < 0 || selected % 3 === 2)
+			var selected = state.selected_level;
+			if (key === 37) // left
 			{
-				selected += 3;
-			}
-		} else if (key === 38) // up
-		{
-			selected -= 3;
-			if (selected < 0)
-			{
-				selected += 9;
-			}
-		} else if (key === 39) // right
-		{
-			selected++;
-			if (selected % 3 === 0)
+				selected--;
+				if (selected < 0 || selected % 3 === 2)
+				{
+					selected += 3;
+				}
+			} else if (key === 38) // up
 			{
 				selected -= 3;
-			}
-		} else if (key === 40) // down
-		{
-			selected += 3;
-			if (selected >= 9)
+				if (selected < 0)
+				{
+					selected += 9;
+				}
+			} else if (key === 39) // right
 			{
-				selected -= 9;
+				selected++;
+				if (selected % 3 === 0)
+				{
+					selected -= 3;
+				}
+			} else if (key === 40) // down
+			{
+				selected += 3;
+				if (selected >= 9)
+				{
+					selected -= 9;
+				}
 			}
-		}
-		if (state.unlocked[selected])
-		{
-			state.selected_level = selected;
+			if (state.unlocked[selected])
+			{
+				state.selected_level = selected;
+			}
 		}
 	};
 

@@ -739,7 +739,7 @@ var duperHexagon = function()
 		playing              = true;
 		tick                 = 0;
 		multiplier           = 1;
-		next_obstacle_set_at = level.first_tick;
+		next_obstacle_set_at = level.first_tick * level.obstacle_speed;
 		last_pickup_at       = 0;
 		next_pickups         = [];
 		last_wave_tick       = 0;
@@ -939,8 +939,9 @@ var duperHexagon = function()
 		};
 
 		var speed = level.obstacle_speed;
+		next_obstacle_set_at -= speed * multiplier;
 
-		if (tick >= next_obstacle_set_at)
+		if (next_obstacle_set_at <= 0)
 		{
 			var type = obstacle_types[Math.floor(Math.random() * obstacle_types.length)];
 			var gap, alt_gap, wave, width, tick_multiplier, should_rebound, next_gap, leave_even, leave_odd;
@@ -961,7 +962,7 @@ var duperHexagon = function()
 						gaps: [i1, i2]
 					});
 				}
-				next_obstacle_set_at += wave_duration * 4 / (speed * multiplier);
+				next_obstacle_set_at = 960;
 
 			} else if (type === 'single5op' || type === 'single5' || type === 'fat5' || type === 'fat5op' ||
 				type === '5rebound' || type === 'fat5rebound' || type === 'fat5oprebound')
@@ -991,10 +992,10 @@ var duperHexagon = function()
 						rebounds: should_rebound
 					});
 				}
-				next_obstacle_set_at += tick_multiplier * 960 / (speed * multiplier);
+				next_obstacle_set_at = tick_multiplier * 960;
 				if (type === 'fat5rebound' || type === 'fat5oprebound')
 				{
-					next_obstacle_set_at += 240 / (speed * multiplier);
+					next_obstacle_set_at += 240;
 				}
 			} else if (type === 'labyrinth' || type === 'ifuckedup' || type === '4labyrinth' || type === '4ifuckedup'
 				|| type === '4ifuckeduprebound' || type === 'ifuckeduprebound' || type === '4labyrinthrebound'
@@ -1041,15 +1042,15 @@ var duperHexagon = function()
 					}
 					gap = next_gap;
 				}
-				next_obstacle_set_at += 1120 / (speed * multiplier);
+				next_obstacle_set_at = 1120;
 				if (should_rebound)
 				{
 					if (i_fucked_up)
 					{
-						next_obstacle_set_at += 40 / (multiplier * speed);
+						next_obstacle_set_at += 40;
 					} else
 					{
-						next_obstacle_set_at += 80 / (multiplier * speed);
+						next_obstacle_set_at += 80;
 					}
 				}
 			} else if (type === 'labyrinththrough' || type === 'ifuckedupthrough')
@@ -1091,10 +1092,10 @@ var duperHexagon = function()
 						gap = next_gap;
 					}
 				}
-				next_obstacle_set_at += 1160 / (speed * multiplier);
+				next_obstacle_set_at = 1160;
 				if (type === 'labyrinththrough')
 				{
-					next_obstacle_set_at += 40 / (speed * multiplier);
+					next_obstacle_set_at += 40;
 				}
 			} else if (type === 'quickalt' || type === 'quickeralt' || type === 'quickaltrebound' || type === 'quickaltthrough')
 			{
@@ -1114,13 +1115,13 @@ var duperHexagon = function()
 						passes_through: wave === 2 && type === 'quickaltthrough'
 					});
 				}
-				next_obstacle_set_at += 1080 / (speed * multiplier);
+				next_obstacle_set_at = 1080;
 				if (type === 'quickeralt')
 				{
-					next_obstacle_set_at -= 120 / (speed * multiplier);
+					next_obstacle_set_at -= 120;
 				} else if (type === 'quickaltrebound' || type === 'quickaltthrough')
 				{
-					next_obstacle_set_at += 120 / (speed * multiplier);
+					next_obstacle_set_at += 120;
 				}
 			} else if (type === 'multi4' || type === 'multi5' || type === 'multi4rebound' || type === 'multi4through')
 			{
@@ -1155,10 +1156,10 @@ var duperHexagon = function()
 						passes_through: wave === 2 && type === 'multi4through'
 					});
 				}
-				next_obstacle_set_at += 960 / (speed * multiplier);
+				next_obstacle_set_at = 960;
 				if (type === 'multi4rebound' || type === 'multi4through')
 				{
-					next_obstacle_set_at += 120 / (speed * multiplier);
+					next_obstacle_set_at += 120;
 				}
 			} else if (type === 'quickrepeat' || type === 'quickrepeatrebound')
 			{
@@ -1191,10 +1192,10 @@ var duperHexagon = function()
 					}
 					total_waves += waves;
 				}
-				next_obstacle_set_at += (total_waves + 1) * 140 / (speed * multiplier);
+				next_obstacle_set_at = (total_waves + 1) * 140;
 				if (type === 'quickrepeatrebound')
 				{
-					next_obstacle_set_at += 180 / (speed * multiplier);
+					next_obstacle_set_at += 180;
 				}
 			} else if (type === '4fast' || type === '4fastrebound' || type === '4fastthrough')
 			{
@@ -1212,7 +1213,7 @@ var duperHexagon = function()
 						passes_through: type === '4fastthrough'
 					});
 				}
-				next_obstacle_set_at += tick_multiplier * 1440 / (speed * multiplier);
+				next_obstacle_set_at = tick_multiplier * 1440;
 			} else if (type === '4through')
 			{
 				// 4 obstacles which pass through the center
@@ -1227,7 +1228,7 @@ var duperHexagon = function()
 						passes_through: true
 					});
 				}
-				next_obstacle_set_at += 1080 / (speed * multiplier);
+				next_obstacle_set_at = 1080;
 			}
 		}
 
