@@ -1,4 +1,4 @@
-app.controller('MainCtrl', function($scope, $interval, $timeout)
+app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, LevelUnlockSrv)
 {
 	'use strict';
 
@@ -36,11 +36,11 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 		hinting: false,
 		hints: [],
 		time: 0,
-		unlock_at: 60,
-		best_times: [],
+		unlock_at: LevelUnlockSrv.UNLOCK_AT,
+		best_times: RecordSrv.getRecords(),
 		level_names: ['Serenity', 'Tension', 'Panic', 'Serenity+', 'Tension+', 'Panic+', 'Serenity Overtime',
 			'Tension Overtime', 'Panic Overtime'],
-		unlocked: [true, false, false, false, false, false, false, false, false],
+		unlocked: LevelUnlockSrv.checkUnlock().unlocked,
 		loading: false,
 		show_loading: false,
 		just_unlocked: [],
@@ -126,8 +126,6 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 	};
 
 	var game = duperHexagon();
-	game.enterRestarts(false);
-	game.allowMusic(false);
 	game.addStartHandler(function()
 	{
 		$scope.state.started       = true;
@@ -142,24 +140,14 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 		$scope.state.time    = Number($scope.state.time);
 		if ($scope.state.time > $scope.state.best_times[$scope.state.current_level])
 		{
+			RecordSrv.setRecord($scope.state.current_level, $scope.state.time);
 			$scope.state.best_times[$scope.state.current_level] = $scope.state.time;
 			var seconds                                         = Math.floor($scope.state.time);
 			if (seconds >= $scope.state.unlock_at) // Can we unlock levels?
 			{
-				// First, level n+1 (e.g., Serenity (0) unlocks Tension (1))
-				var to_unlock = $scope.state.current_level + 1;
-				if ($scope.state.unlocked[to_unlock] === false)
-				{
-					$scope.state.unlocked[to_unlock] = true;
-					$scope.state.just_unlocked.push(to_unlock);
-				}
-				// Now, level n+3 (e.g., Serenity (0) unlocks Serenity+ (3)).
-				to_unlock = $scope.state.current_level + 3;
-				if ($scope.state.unlocked[to_unlock] === false)
-				{
-					$scope.state.unlocked[to_unlock] = true;
-					$scope.state.just_unlocked.push(to_unlock);
-				}
+				var unlock                 = LevelUnlockSrv.checkUnlock();
+				$scope.state.unlocked      = unlock.unlocked;
+				$scope.state.just_unlocked = unlock.just_unlocked;
 			}
 		}
 
@@ -167,5 +155,7 @@ app.controller('MainCtrl', function($scope, $interval, $timeout)
 		$timeout(); // update scope
 	});
 
+	game.enterRestarts(false);
+	game.allowMusic(false);
 	game.miniStart(0);
 });

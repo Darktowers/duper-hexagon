@@ -1,1 +1,1 @@
-var app = angular.module('duper-hexagon', []);
+var app = angular.module('duper-hexagon', ['LocalStorageModule']);

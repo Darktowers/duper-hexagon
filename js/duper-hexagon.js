@@ -770,7 +770,7 @@ var duperHexagon = function()
 
 		level              = levels[level_index] ? levels[level_index] : levels[curr_level];
 		level.pickup_speed = sqrt3 * level.obstacle_speed / 2;
-		curr_level         = level_index ? level_index : curr_level;
+		curr_level         = level_index !== undefined ? level_index : curr_level;
 		music_loaded       = false;
 		allow_moving       = false;
 
