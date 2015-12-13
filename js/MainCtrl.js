@@ -79,30 +79,33 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 		},
 		onKeyDown: function($event)
 		{
-			if ($event.which === 13) // Enter key
+			if (game.isGameCreated())
 			{
-				if (state.mode === 'welcome')
+				if ($event.which === 13) // Enter key
 				{
-					if (state.unlocked[1] === false)
+					if (state.mode === 'welcome')
 					{
-						state.mode = 'ingame';
-						state.start(0);
-					} else
+						if (state.unlocked[1] === false)
+						{
+							state.mode = 'ingame';
+							state.start(0);
+						} else
+						{
+							state.mode = 'menu';
+						}
+					} else if (state.mode === 'crashed')
 					{
-						state.mode = 'menu';
+						state.start(state.current_level);
 					}
-				} else if (state.mode === 'crashed')
+				} else if ($event.which === 27) // Escape
 				{
-					state.start(state.current_level);
-				}
-			} else if ($event.which === 27) // Escape
-			{
-				ended_by_user = true;
-				state.mode    = 'menu';
-				if (state.started === true)
-				{
-					state.started = false;
-					game.end();
+					ended_by_user = true;
+					state.mode    = 'menu';
+					if (state.started === true)
+					{
+						state.started = false;
+						game.end();
+					}
 				}
 			}
 		}

@@ -1366,6 +1366,10 @@ var duperHexagon = function()
 				loadMusic();
 			}
 		},
+		isGameCreated: function()
+		{
+			return game_created
+		},
 		enterRestarts: function(val) // Whether pressing enter restarts the game
 		{
 			enter_restarts = val;
