@@ -19,7 +19,7 @@
         }
     </style>
 </head>
-<body ng-controller="MainCtrl" ng-keydown="state.onPressEnter($event)">
+<body ng-controller="MainCtrl" ng-keydown="state.onKeyDown($event)">
 <div id="main">
     <div id="game-wrapper">
         <div id="game"></div>
@@ -49,21 +49,34 @@
                 </div>
             </div>
 
-            <div id="menu" class="cover-game semiopaque"
-                 ng-show="state.first_game !== true && state.hinting === false && state.crashed === true">
-                <span ng-if="state.started === false">
-                    <h3>Duper Hexagon</h3>
-                </span>
-                <span ng-show="state.crashed === true">
+            <div id="menu" class="cover-game semiopaque center"
+                 ng-show="(state.started === false || state.crashed === true) && state.menu === true">
+                <button ng-click="state.start(0)">Serenity</button>
+                <button ng-click="state.start(1)" ng-disabled="!state.unlocked[1]">Tension</button>
+                <button ng-click="state.start(2)" ng-disabled="!state.unlocked[2]">Panic</button>
+                <br><br>
+                <button ng-click="state.start(3)" ng-disabled="!state.unlocked[3]">Serenity+</button>
+                <button ng-click="state.start(4)" ng-disabled="!state.unlocked[4]">Tension+</button>
+                <button ng-click="state.start(5)" ng-disabled="!state.unlocked[5]">Panic+</button>
+                <br><br>
+                <button ng-click="state.start(6)" ng-disabled="!state.unlocked[6]">Serenity Overtime</button>
+                <button ng-click="state.start(7)" ng-disabled="!state.unlocked[7]">Tension Overtime</button>
+                <button ng-click="state.start(8)" ng-disabled="!state.unlocked[8]">Panic Overtime</button>
+            </div>
+
+            <div id="post-crash" class="cover-game semiopaque center"
+                 ng-show="state.first_game !== true && state.hinting === false && state.crashed === true
+                 && state.menu === false">
+                <div class="center-text">
                     <h3>Your time: {{state.time}} s.</h3>
                     <p>
                         <span ng-show="state.best_times[state.current_level] > state.time">
-                            Your record: {{state.best_times[state.current_level]}} s.</span>
+                            Your record: {{state.best_times[state.current_level]}} s<span
+                                ng-show="state.best_times[state.current_level] < state.unlock_at
+                            && !state.unlocked[state.current_level + 1]">
+                        (target: {{state.unlock_at}} s)</span>.</span>
                         <span ng-show="state.best_times[state.current_level] <= state.time">
                             New record!</span>
-                    </p>
-                    <p ng-show="state.best_times[state.current_level] < state.unlock_at && !state.unlocked[state.current_level + 1]">
-                        Beat this level at {{state.unlock_at}} seconds.
                     </p>
                     <div ng-show="state.just_unlocked.length > 0">
                         <p>You have unlocked the following levels:</p>
@@ -71,21 +84,9 @@
                             <li ng-repeat="level in state.just_unlocked">{{state.level_names[level]}}</li>
                         </ul>
                     </div>
-                    <p>Press Enter to restart, or choose another level:</p>
-                </span>
-                <span ng-show="state.started === false || state.crashed === true">
-                    <button ng-click="state.start(0)">Serenity</button>
-                    <button ng-click="state.start(1)" ng-disabled="!state.unlocked[1]">Tension</button>
-                    <button ng-click="state.start(2)" ng-disabled="!state.unlocked[2]">Panic</button>
-                    <br><br>
-                    <button ng-click="state.start(3)" ng-disabled="!state.unlocked[3]">Serenity+</button>
-                    <button ng-click="state.start(4)" ng-disabled="!state.unlocked[4]">Tension+</button>
-                    <button ng-click="state.start(5)" ng-disabled="!state.unlocked[5]">Panic+</button>
-                    <br><br>
-                    <button ng-click="state.start(6)" ng-disabled="!state.unlocked[6]">Serenity Overtime</button>
-                    <button ng-click="state.start(7)" ng-disabled="!state.unlocked[7]">Tension Overtime</button>
-                    <button ng-click="state.start(8)" ng-disabled="!state.unlocked[8]">Panic Overtime</button>
-                </span>
+                    <p>Press Enter to restart<span ng-show="state.unlocked[1]">, or Escape to select another
+                        level.</span></p>
+                </div>
             </div>
 
             <div id="timer" class="shadow-text corner" ng-show="state.started === true && state.crashed === false">

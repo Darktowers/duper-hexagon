@@ -13,18 +13,18 @@ app.service('LevelUnlockSrv', function(RecordSrv)
 	];
 
 	var UNLOCK_AT = 60;
+	var unlocked = [true, false, false, false, false, false, false, false, false];
 
 	var checkUnlock = function()
 	{
 		var just_unlocked = [];
-		var unlocked      = [true, false, false, false, false, false, false, false, false];
-		var records       = RecordSrv.getRecords();
+		var old_records   = RecordSrv.getRecords();
 		for (var i = 1; i < 9; i++)
 		{
 			var level_unlocked = true;
 			for (var j = 0; j < PREREQUISITES.length; j++)
 			{
-				if (Number(records[PREREQUISITES[i][j]]) < UNLOCK_AT)
+				if (Number(old_records[PREREQUISITES[i][j]]) < UNLOCK_AT)
 				{
 					level_unlocked = false;
 				}

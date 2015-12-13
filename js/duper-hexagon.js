@@ -1353,6 +1353,7 @@ var duperHexagon = function()
 	return {
 		start: tryRestart, // Start a certain level
 		miniStart: tryMiniStart, // Draw the background, the hexagon and the player, but no obstacles
+		end: onCrash,
 		allowMoving: function(val) // Allow the player to move after a mini start
 		{
 			allow_moving = val;
