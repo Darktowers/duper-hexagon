@@ -50,18 +50,18 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 		next_unlock: [],
 		start: function(level)
 		{
-			if ($scope.state.unlocked[level])
+			if (state.unlocked[level])
 			{
-				$scope.state.show_welcome = false;
-				game.allowMusic(!$scope.state.disable_music);
-				if (!$scope.state.best_times[level])
+				state.show_welcome = false;
+				game.allowMusic(!state.disable_music);
+				if (!state.best_times[level])
 				{
-					$scope.state.best_times[level] = 0;
+					state.best_times[level] = 0;
 					if (hints[level])
 					{
 						// If there is a hint for a new level, display it before starting the game
-						$scope.state.hints   = hints[level].text;
-						$scope.state.hinting = true;
+						state.hints   = hints[level].text;
+						state.hinting = true;
 						game.miniStart(level);
 						game.allowMoving(true);
 						$timeout(function()
@@ -82,51 +82,58 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 		{
 			if ($event.which === 13) // Enter key
 			{
-				if ($scope.state.show_welcome === true || $scope.state.unlocked[1] === false)
+				if (state.show_welcome === true)
 				{
-					$scope.state.start(0);
-				} else
+					if (state.unlocked[1] === false)
+					{
+						state.start(0);
+					} else
+					{
+						state.show_welcome = false;
+						state.menu = true;
+					}
+				} else if (state.started === true)
 				{
-					$scope.state.show_welcome === false;
-					$scope.state.menu = true;
+					state.start(state.current_level);
 				}
 			} else if ($event.which === 27) // Escape
 			{
 				ended_by_user     = true;
-				$scope.state.menu = true;
-				if ($scope.state.started === true)
+				state.menu = true;
+				if (state.started === true)
 				{
-					$scope.state.started = false;
+					state.started = false;
 					game.end();
 				}
 			}
 		}
 	};
 
+	var state = $scope.state;
+
 	var startGame = function(level)
 	{
-		$scope.state.current_level = level;
-		$scope.state.hinting       = false;
-		$scope.state.loading       = true;
-		$scope.state.menu          = false;
+		state.current_level = level;
+		state.hinting       = false;
+		state.loading       = true;
+		state.menu          = false;
 		$timeout(function()
 		{
 			// Prevent loading dialog from appearing if we have to wait for less than 100 ms,
 			// otherwise the screen will flicker
-			if ($scope.state.loading === true)
+			if (state.loading === true)
 			{
-				$scope.state.show_loading = true;
+				state.show_loading = true;
 			}
 		}, 100);
 		game.addLoadHandler(function()
 		{
-			$scope.state.loading      = false;
-			$scope.state.show_loading = false;
-			if ($scope.state.started === true)
+			state.loading      = false;
+			state.show_loading = false;
+			if (state.started === true)
 			{
 				setTimer();
 			}
-			game.enterRestarts(true);
 		});
 		game.start(level);
 		$timeout();
@@ -142,42 +149,42 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 		}
 		timer = $interval(function()
 		{
-			$scope.state.time = ((Date.now() - time) / 1000).toFixed(1);
+			state.time = ((Date.now() - time) / 1000).toFixed(1);
 		}, 100);
 	};
 
 	var game = duperHexagon();
 	game.addStartHandler(function()
 	{
-		$scope.state.started     = true;
-		$scope.state.crashed     = false;
-		$scope.state.next_unlock = LevelUnlockSrv.levelUnlocks($scope.state.current_level);
+		state.started     = true;
+		state.crashed     = false;
+		state.next_unlock = LevelUnlockSrv.levelUnlocks(state.current_level);
 		setTimer();
 	});
 
 	game.addCrashHandler(function()
 	{
-		$scope.state.crashed = true;
+		state.crashed = true;
 		$interval.cancel(timer);
 
 		if (!ended_by_user)
 		{
-			$scope.state.time = Number($scope.state.time);
-			if ($scope.state.time > $scope.state.best_times[$scope.state.current_level])
+			state.time = Number(state.time);
+			if (state.time > state.best_times[state.current_level])
 			{
-				RecordSrv.setRecord($scope.state.current_level, $scope.state.time);
-				$scope.state.best_times[$scope.state.current_level] = $scope.state.time;
-				var seconds                                         = Math.floor($scope.state.time);
-				if (seconds >= $scope.state.unlock_at) // Can we unlock levels?
+				RecordSrv.setRecord(state.current_level, state.time);
+				state.best_times[state.current_level] = state.time;
+				var seconds                           = Math.floor(state.time);
+				if (seconds >= state.unlock_at) // Can we unlock levels?
 				{
-					$scope.state.unlocked = LevelUnlockSrv.checkUnlock();
+					state.unlocked = LevelUnlockSrv.checkUnlock();
 				}
 			}
-			$scope.state.menu = false;
+			state.menu = false;
 		} else
 		{
 			ended_by_user     = false;
-			$scope.state.menu = true;
+			state.menu = true;
 		}
 		$timeout(); // update scope
 	});
