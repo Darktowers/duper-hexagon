@@ -40,6 +40,7 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 		crashed: false,
 		hints: [],
 		time: 0,
+		selected_level: 0,
 		unlock_at: LevelUnlockSrv.UNLOCK_AT,
 		best_times: RecordSrv.getRecords(),
 		level_names: ['Serenity', 'Tension', 'Panic', 'Serenity+', 'Tension+', 'Panic+', 'Serenity Overtime',
@@ -83,31 +84,86 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 			{
 				if ($event.which === 13) // Enter key
 				{
-					if (state.mode === 'welcome')
-					{
-						if (state.unlocked[1] === false)
-						{
-							state.mode = 'ingame';
-							state.start(0);
-						} else
-						{
-							state.mode = 'menu';
-						}
-					} else if (state.mode === 'crashed')
-					{
-						state.start(state.current_level);
-					}
+					handleEnter();
 				} else if ($event.which === 27) // Escape
 				{
-					ended_by_user = true;
-					state.mode    = 'menu';
-					if (state.started === true)
-					{
-						state.started = false;
-						game.end();
-					}
+					handleEscape();
+				} else if ($event.which >= 37 && $event.which <= 40) // Arrow keys
+				{
+					handleArrow($event.which);
 				}
 			}
+		},
+		level_range: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+	};
+
+	var handleEnter = function()
+	{
+		if (state.mode === 'welcome')
+		{
+			if (state.unlocked[1] === false)
+			{
+				state.mode = 'ingame';
+				state.start(0);
+			} else
+			{
+				state.mode = 'menu';
+			}
+		} else if (state.mode === 'crashed')
+		{
+			state.start(state.current_level);
+		} else if (state.mode === 'menu')
+		{
+			state.start(state.selected_level);
+		}
+	};
+
+	var handleEscape = function()
+	{
+		ended_by_user = true;
+		state.mode    = 'menu';
+		if (state.started === true)
+		{
+			state.started = false;
+			game.end();
+		}
+	};
+
+	var handleArrow = function(key)
+	{
+		var selected = state.selected_level;
+		if (key === 37) // left
+		{
+			selected--;
+			if (selected < 0 || selected % 3 === 2)
+			{
+				selected += 3;
+			}
+		} else if (key === 38) // up
+		{
+			selected -= 3;
+			if (selected < 0)
+			{
+				selected += 9;
+			}
+		} else if (key === 39) // right
+		{
+			selected++;
+			if (selected % 3 === 0)
+			{
+				selected -= 3;
+			}
+		} else if (key === 40) // down
+		{
+			selected += 3;
+			if (selected >= 9)
+			{
+				selected -= 9;
+			}
+		}
+		if (state.unlocked[selected])
+		{
+			state.selected_level = selected;
 		}
 	};
 
@@ -144,8 +200,8 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 	var timer;
 	var setTimer = function()
 	{
-		state.time        = 0;
-		time = Date.now();
+		state.time = 0;
+		time       = Date.now();
 		if (timer)
 		{
 			$interval.cancel(timer);
@@ -159,9 +215,10 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 	var game = duperHexagon();
 	game.addStartHandler(function()
 	{
-		state.started     = true;
-		state.mode        = 'ingame';
-		state.next_unlock = LevelUnlockSrv.levelUnlocks(state.current_level);
+		state.started        = true;
+		state.selected_level = state.current_level;
+		state.mode           = 'ingame';
+		state.next_unlock    = LevelUnlockSrv.levelUnlocks(state.current_level);
 		setTimer();
 	});
 

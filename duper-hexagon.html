@@ -50,17 +50,13 @@
             </div>
 
             <div id="menu" class="cover-game semiopaque center" ng-show="state.mode === 'menu'">
-                <button ng-click="state.start(0)">Serenity</button>
-                <button ng-click="state.start(1)" ng-disabled="!state.unlocked[1]">Tension</button>
-                <button ng-click="state.start(2)" ng-disabled="!state.unlocked[2]">Panic</button>
-                <br><br>
-                <button ng-click="state.start(3)" ng-disabled="!state.unlocked[3]">Serenity+</button>
-                <button ng-click="state.start(4)" ng-disabled="!state.unlocked[4]">Tension+</button>
-                <button ng-click="state.start(5)" ng-disabled="!state.unlocked[5]">Panic+</button>
-                <br><br>
-                <button ng-click="state.start(6)" ng-disabled="!state.unlocked[6]">Serenity Overtime</button>
-                <button ng-click="state.start(7)" ng-disabled="!state.unlocked[7]">Tension Overtime</button>
-                <button ng-click="state.start(8)" ng-disabled="!state.unlocked[8]">Panic Overtime</button>
+                <h3 class="flex-title">Choose a level</h3>
+                <div ng-repeat="level in state.level_names track by $index" class="level"
+                     ng-class="{active: state.unlocked[$index], selected: state.selected_level === $index}"
+                     ng-click="state.start($index)">
+                    <p ng-show="state.unlocked[$index]">{{level}}</p>
+                    <p ng-show="!state.unlocked[$index]">Locked</p>
+                </div>
             </div>
 
             <div id="post-crash" class="cover-game semiopaque center" ng-show="state.mode === 'crashed'">
@@ -82,9 +78,9 @@
                             </p>
                             <div ng-show="state.best_times[state.current_level] > state.unlock_at">
                                 <p>You have unlocked the following levels:</p>
-                                <ul>
-                                    <li ng-repeat="level in state.next_unlock">{{state.level_names[level]}}</li>
-                                </ul>
+                                <p ng-repeat="level in state.next_unlock">
+                                    - {{state.level_names[level]}}
+                                </p>
                             </div>
                         </div>
                     </div>
