@@ -1,0 +1,27 @@
+{
+  "name": "duper-hexagon",
+  "homepage": "https://github.com/unpollito/duper-hexagon",
+  "authors": [
+    "David Martín-González <martingonzalezdavid@gmail.com>"
+  ],
+  "description": "A minimalistic twitch game, based on Terry Cavanagh's Super Hexagon",
+  "main": "index.html",
+  "moduleType": [],
+  "keywords": [
+    "game",
+    "javascript",
+    "phaser"
+  ],
+  "license": "GPL-2.0",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular-local-storage": "~0.2.3"
+  }
+}
