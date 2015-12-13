@@ -348,20 +348,26 @@ var duperHexagon = function()
 		});
 	};
 
-	var drawPickup = function(interval)
+	var drawPickup = function(pickup)
 	{
 		if (level.overtime)
 		{
-			var pickup      = game.add.sprite(
-				median_interval_points[interval].x,
-				median_interval_points[interval].y,
+			var interval = pickup.interval;
+			var distance = 0;
+			if (pickup.tick - tick > 0)
+			{
+				distance = (pickup.tick - tick) * level.obstacle_speed;
+			}
+			var sprite      = game.add.sprite(
+				median_interval_points[interval].x + distance * pickup_proportion_x[interval],
+				median_interval_points[interval].y + distance * pickup_proportion_y[interval],
 				'pickup');
-			pickup.anchor.x = 0.5;
-			pickup.anchor.y = 0.5;
-			obstacles_group.add(pickup);
-			pickup.interval = interval;
-			pickup.rotation = -5 * Math.PI / 6 + Math.PI * interval / 3;
-			pickups.push(pickup);
+			sprite.anchor.x = 0.5;
+			sprite.anchor.y = 0.5;
+			obstacles_group.add(sprite);
+			sprite.interval = interval;
+			sprite.rotation = -5 * Math.PI / 6 + Math.PI * interval / 3;
+			pickups.push(sprite);
 		}
 	};
 
@@ -1051,7 +1057,7 @@ var duperHexagon = function()
 				// Gaps open and close, 5-4-5-4... but at the end it has two exits so that the pass-through can be
 				// dodged
 				gap   = Math.floor(Math.random() * 6);
-				width = type === 'labyrinththrough' ? 84 : 40;
+				width = type === 'labyrinththrough' ? 80 : 40;
 				for (wave = 0; wave < 6; wave++)
 				{
 					leave_even = [gap];
@@ -1225,18 +1231,13 @@ var duperHexagon = function()
 			}
 		}
 
-		var obstacle;
 		while (next_obstacles.length > 0)
 		{
-			obstacle = next_obstacles.shift();
-			drawSingleObstacle(obstacle);
+			drawSingleObstacle(next_obstacles.shift());
 		}
-
-		var pickup;
-		while (next_pickups.length > 0 && next_pickups[0].tick <= tick)
+		while (next_pickups.length > 0)
 		{
-			pickup = next_pickups.shift();
-			drawPickup(pickup.interval);
+			drawPickup(next_pickups.shift());
 		}
 	};
 
