@@ -106,8 +106,8 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 			{
 				setTimer();
 			}
+			game.enterRestarts(true);
 		});
-		game.enterRestarts(true);
 		game.start(level);
 	};
 

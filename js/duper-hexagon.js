@@ -774,12 +774,6 @@ var duperHexagon = function()
 		music_loaded       = false;
 		allow_moving       = false;
 
-		if (allow_music)
-		{
-			song      = game.add.audio(level.song);
-			song.loop = true;
-		}
-
 		cleanupRun();
 
 		var bg_polygons = backgroundTriangles();
@@ -816,20 +810,26 @@ var duperHexagon = function()
 		game_disabled = true;
 	};
 
-	var playSong = function(song)
+	var loadSong = function()
 	{
+		song        = game.add.audio(level.song);
+		song.loop   = true;
 		song.volume = 1;
 		song.play();
 	};
 
+	var restart_timeout;
+
 	var restart = function(level_index)
 	{
+		clearTimeout(restart_timeout);
+		var song_not_loaded = !game.cache.checkSoundKey(level.song) || !game.cache.isSoundDecoded(level.song);
 		// Do not proceed if we are still in the preloading phase. Instead of that, try again in 100 ms.
-		if (game_created === false)
+		if (game_created === false || allow_music && song_not_loaded)
 		{
 			window.setTimeout(function()
 			{
-				restart(level_index);
+				restart_timeout = restart(level_index);
 			}, 100);
 			return;
 		}
@@ -844,17 +844,15 @@ var duperHexagon = function()
 
 		if (allow_music)
 		{
-			// If the user restarts before the song finished fading out, wait for it to finish fading out before
-			// playing it again (otherwise, it won't be played)
-			if (song.isPlaying)
+			if (song && song.isPlaying)
 			{
 				song.onFadeComplete.addOnce(function()
 				{
-					playSong(song);
+					loadSong();
 				});
 			} else
 			{
-				playSong(song);
+				loadSong();
 			}
 		}
 		start_callbacks.map(function(cb)
@@ -1001,8 +999,8 @@ var duperHexagon = function()
 					type === 'labyrinthrebound' || type === '4labyrinthrebound';
 				var i_fucked_up = type === 'ifuckedup' || type === '4ifuckedup' || type === 'ifuckeduprebound' ||
 					type === '4ifuckeduprebound';
-				gap   = Math.floor(Math.random() * 6);
-				width = 80;
+				gap             = Math.floor(Math.random() * 6);
+				width           = 80;
 				if (i_fucked_up)
 				{
 					width = 40;
