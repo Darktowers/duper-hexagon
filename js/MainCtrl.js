@@ -32,7 +32,7 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 	var ended_by_user = false;
 
 	$scope.state = {
-		first_game: true,
+		show_welcome: true,
 		disable_music: false,
 		started: false,
 		crashed: false,
@@ -44,15 +44,15 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 		best_times: RecordSrv.getRecords(),
 		level_names: ['Serenity', 'Tension', 'Panic', 'Serenity+', 'Tension+', 'Panic+', 'Serenity Overtime',
 			'Tension Overtime', 'Panic Overtime'],
-		unlocked: LevelUnlockSrv.checkUnlock().unlocked,
+		unlocked: LevelUnlockSrv.checkUnlock(),
 		loading: false,
 		show_loading: false,
-		just_unlocked: [],
+		next_unlock: [],
 		start: function(level)
 		{
 			if ($scope.state.unlocked[level])
 			{
-				$scope.state.first_game = false;
+				$scope.state.show_welcome = false;
 				game.allowMusic(!$scope.state.disable_music);
 				if (!$scope.state.best_times[level])
 				{
@@ -82,9 +82,13 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 		{
 			if ($event.which === 13) // Enter key
 			{
-				if ($scope.state.first_game === true)
+				if ($scope.state.show_welcome === true || $scope.state.unlocked[1] === false)
 				{
 					$scope.state.start(0);
+				} else
+				{
+					$scope.state.show_welcome === false;
+					$scope.state.menu = true;
 				}
 			} else if ($event.which === 27) // Escape
 			{
@@ -145,9 +149,9 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 	var game = duperHexagon();
 	game.addStartHandler(function()
 	{
-		$scope.state.started       = true;
-		$scope.state.crashed       = false;
-		$scope.state.just_unlocked = [];
+		$scope.state.started     = true;
+		$scope.state.crashed     = false;
+		$scope.state.next_unlock = LevelUnlockSrv.levelUnlocks($scope.state.current_level);
 		setTimer();
 	});
 
@@ -166,9 +170,7 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 				var seconds                                         = Math.floor($scope.state.time);
 				if (seconds >= $scope.state.unlock_at) // Can we unlock levels?
 				{
-					var unlock                 = LevelUnlockSrv.checkUnlock();
-					$scope.state.unlocked      = unlock.unlocked;
-					$scope.state.just_unlocked = unlock.just_unlocked;
+					$scope.state.unlocked = LevelUnlockSrv.checkUnlock();
 				}
 			}
 			$scope.state.menu = false;

@@ -24,7 +24,7 @@
     <div id="game-wrapper">
         <div id="game"></div>
         <div id="floating">
-            <div id="welcome" class="cover-game center semiopaque" ng-if="state.first_game === true">
+            <div id="welcome" class="cover-game center semiopaque" ng-if="state.show_welcome === true">
                 <div class="center-text">
                     <h1>Duper Hexagon</h1>
                     <h3>PRESS ENTER TO START</h3>
@@ -65,24 +65,31 @@
             </div>
 
             <div id="post-crash" class="cover-game semiopaque center"
-                 ng-show="state.first_game !== true && state.hinting === false && state.crashed === true
+                 ng-show="state.show_welcome !== true && state.hinting === false && state.crashed === true
                  && state.menu === false">
                 <div class="center-text">
                     <h3>Your time: {{state.time}} s.</h3>
-                    <p>
-                        <span ng-show="state.best_times[state.current_level] > state.time">
-                            Your record: {{state.best_times[state.current_level]}} s<span
-                                ng-show="state.best_times[state.current_level] < state.unlock_at
-                            && !state.unlocked[state.current_level + 1]">
-                        (target: {{state.unlock_at}} s)</span>.</span>
-                        <span ng-show="state.best_times[state.current_level] <= state.time">
-                            New record!</span>
+                    <p ng-show="state.best_times[state.current_level] > state.time">
+                        Your record: {{state.best_times[state.current_level]}} s<span
+                            ng-show="state.best_times[state.current_level] < state.unlock_at
+                            && !state.unlocked[state.current_level + 1]"><span
+                            ng-show="state.next_unlock.length > 0">. Unlock new levels at {{state.unlock_at}}
+                            s</span><span ng-show="state.next_unlock.length === 0">
+                            (target: {{state.unlock_at}} s)</span></span>.
                     </p>
-                    <div ng-show="state.just_unlocked.length > 0">
-                        <p>You have unlocked the following levels:</p>
-                        <ul>
-                            <li ng-repeat="level in state.just_unlocked">{{state.level_names[level]}}</li>
-                        </ul>
+                    <div ng-show="state.best_times[state.current_level] <= state.time">
+                        <p>New record!</p>
+                        <div ng-show="state.next_unlock.length > 0">
+                            <p ng-show="state.best_times[state.current_level] <= state.unlock_at">
+                                Unlock new levels at at {{state.unlock_at}} s.
+                            </p>
+                            <div ng-show="state.best_times[state.current_level] > state.unlock_at">
+                                <p>You have unlocked the following levels:</p>
+                                <ul>
+                                    <li ng-repeat="level in state.next_unlock">{{state.level_names[level]}}</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                     <p>Press Enter to restart<span ng-show="state.unlocked[1]">, or Escape to select another
                         level.</span></p>

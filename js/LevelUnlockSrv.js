@@ -17,7 +17,6 @@ app.service('LevelUnlockSrv', function(RecordSrv)
 
 	var checkUnlock = function()
 	{
-		var just_unlocked = [];
 		var old_records   = RecordSrv.getRecords();
 		for (var i = 1; i < 9; i++)
 		{
@@ -29,23 +28,45 @@ app.service('LevelUnlockSrv', function(RecordSrv)
 					level_unlocked = false;
 				}
 			}
-			if (level_unlocked)
+			unlocked[i] = level_unlocked;
+		}
+		return unlocked;
+	};
+
+	var levelUnlocks = function(level)
+	{
+		var records = RecordSrv.getRecords();
+		var result = [];
+		// If this level has already been beaten, beating it again won't unlock any levels
+		if (records[level] >= UNLOCK_AT)
+		{
+			return result;
+		}
+
+		for (var i = 1; i < PREREQUISITES.length; i++)
+		{
+			if (PREREQUISITES[i].indexOf(level) > -1)
 			{
-				if (!unlocked[i])
+				var unlocks = true;
+				PREREQUISITES[i].map(function(other_level)
 				{
-					just_unlocked.push(i);
+					if (level !== other_level && records[other_level] < UNLOCK_AT)
+					{
+						unlocks = false;
+					}
+				});
+				if (unlocks)
+				{
+					result.push(i);
 				}
-				unlocked[i] = level_unlocked;
 			}
 		}
-		return {
-			unlocked: unlocked,
-			just_unlocked: just_unlocked
-		}
+		return result;
 	};
 
 	return {
 		UNLOCK_AT: UNLOCK_AT,
-		checkUnlock: checkUnlock
+		checkUnlock: checkUnlock,
+		levelUnlocks: levelUnlocks
 	};
 });
