@@ -30,14 +30,14 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 
 	// Whether the user pressed Escape to end the game
 	var ended_by_user = false;
+	var game_started  = false;
+	var game_loading  = false;
 
 	$scope.state = {
-		show_welcome: true,
+		mode: 'welcome',
 		disable_music: false,
 		started: false,
 		crashed: false,
-		hinting: false,
-		menu: false,
 		hints: [],
 		time: 0,
 		unlock_at: LevelUnlockSrv.UNLOCK_AT,
@@ -46,7 +46,6 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 			'Tension Overtime', 'Panic Overtime'],
 		unlocked: LevelUnlockSrv.checkUnlock(),
 		loading: false,
-		show_loading: false,
 		next_unlock: [],
 		start: function(level)
 		{
@@ -60,8 +59,8 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 					if (hints[level])
 					{
 						// If there is a hint for a new level, display it before starting the game
-						state.hints   = hints[level].text;
-						state.hinting = true;
+						state.mode  = 'hints';
+						state.hints = hints[level].text;
 						game.miniStart(level);
 						game.allowMoving(true);
 						$timeout(function()
@@ -82,24 +81,24 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 		{
 			if ($event.which === 13) // Enter key
 			{
-				if (state.show_welcome === true)
+				if (state.mode === 'welcome')
 				{
 					if (state.unlocked[1] === false)
 					{
+						state.mode = 'ingame';
 						state.start(0);
 					} else
 					{
-						state.show_welcome = false;
-						state.menu = true;
+						state.mode = 'menu';
 					}
-				} else if (state.started === true)
+				} else if (state.mode === 'crashed')
 				{
 					state.start(state.current_level);
 				}
 			} else if ($event.which === 27) // Escape
 			{
-				ended_by_user     = true;
-				state.menu = true;
+				ended_by_user = true;
+				state.mode    = 'menu';
 				if (state.started === true)
 				{
 					state.started = false;
@@ -114,22 +113,22 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 	var startGame = function(level)
 	{
 		state.current_level = level;
-		state.hinting       = false;
-		state.loading       = true;
-		state.menu          = false;
+		game_loading        = true;
+		state.crashed       = false;
+		state.mode          = 'ingame';
 		$timeout(function()
 		{
 			// Prevent loading dialog from appearing if we have to wait for less than 100 ms,
 			// otherwise the screen will flicker
-			if (state.loading === true)
+			if (game_loading === true)
 			{
-				state.show_loading = true;
+				state.mode = 'loading';
 			}
 		}, 100);
 		game.addLoadHandler(function()
 		{
-			state.loading      = false;
-			state.show_loading = false;
+			game_loading = false;
+			state.mode   = 'ingame';
 			if (state.started === true)
 			{
 				setTimer();
@@ -142,6 +141,7 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 	var timer;
 	var setTimer = function()
 	{
+		state.time        = 0;
 		time = Date.now();
 		if (timer)
 		{
@@ -157,15 +157,15 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 	game.addStartHandler(function()
 	{
 		state.started     = true;
-		state.crashed     = false;
+		state.mode        = 'ingame';
 		state.next_unlock = LevelUnlockSrv.levelUnlocks(state.current_level);
 		setTimer();
 	});
 
 	game.addCrashHandler(function()
 	{
-		state.crashed = true;
 		$interval.cancel(timer);
+		state.crashed = true;
 
 		if (!ended_by_user)
 		{
@@ -180,11 +180,11 @@ app.controller('MainCtrl', function($scope, $interval, $timeout, RecordSrv, Leve
 					state.unlocked = LevelUnlockSrv.checkUnlock();
 				}
 			}
-			state.menu = false;
+			state.mode = 'crashed';
 		} else
 		{
-			ended_by_user     = false;
-			state.menu = true;
+			ended_by_user = false;
+			state.mode    = 'menu';
 		}
 		$timeout(); // update scope
 	});

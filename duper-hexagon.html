@@ -24,7 +24,7 @@
     <div id="game-wrapper">
         <div id="game"></div>
         <div id="floating">
-            <div id="welcome" class="cover-game center semiopaque" ng-if="state.show_welcome === true">
+            <div id="welcome" class="cover-game center semiopaque" ng-if="state.mode === 'welcome'">
                 <div class="center-text">
                     <h1>Duper Hexagon</h1>
                     <h3>PRESS ENTER TO START</h3>
@@ -35,7 +35,7 @@
                 </div>
             </div>
 
-            <div id="hints" class="cover-game center shadow-text" ng-show="state.hinting === true">
+            <div id="hints" class="cover-game center shadow-text" ng-show="state.mode === 'hints'">
                 <div class="center-text">
                     <p ng-repeat="line in state.hints">
                         {{line}}
@@ -43,14 +43,13 @@
                 </div>
             </div>
 
-            <div id="loading" class="cover-game center shadow-text" ng-show="state.show_loading === true">
+            <div id="loading" class="cover-game center shadow-text" ng-show="state.mode === 'loading'">
                 <div class="center-text">
                     <p>Loading...</p>
                 </div>
             </div>
 
-            <div id="menu" class="cover-game semiopaque center"
-                 ng-show="(state.started === false || state.crashed === true) && state.menu === true">
+            <div id="menu" class="cover-game semiopaque center" ng-show="state.mode === 'menu'">
                 <button ng-click="state.start(0)">Serenity</button>
                 <button ng-click="state.start(1)" ng-disabled="!state.unlocked[1]">Tension</button>
                 <button ng-click="state.start(2)" ng-disabled="!state.unlocked[2]">Panic</button>
@@ -64,9 +63,7 @@
                 <button ng-click="state.start(8)" ng-disabled="!state.unlocked[8]">Panic Overtime</button>
             </div>
 
-            <div id="post-crash" class="cover-game semiopaque center"
-                 ng-show="state.show_welcome !== true && state.hinting === false && state.crashed === true
-                 && state.menu === false">
+            <div id="post-crash" class="cover-game semiopaque center" ng-show="state.mode === 'crashed'">
                 <div class="center-text">
                     <h3>Your time: {{state.time}} s.</h3>
                     <p ng-show="state.best_times[state.current_level] > state.time">
